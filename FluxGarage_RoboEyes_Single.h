@@ -86,6 +86,7 @@ public:
     int screenHeight = 240; // TFT display height, in pixels
     int frameInterval = 20; // default value for 50 frames per second (1000/50 = 20 milliseconds)
     unsigned long fpsTimer = 0; // for timing the frames per second
+    bool background = 0;
 
     // For controlling mood types and expressions
     bool tired = 0;
@@ -259,7 +260,7 @@ public:
         }
         
         // Create sprite with the size of the screen - this will hold both eyes
-        if (!_sprite->createSprite(screenWidth, screenHeight)) {
+        if (!_sprite->createSprite(screenWidth/2, screenHeight/2)) {
             Serial.println("ERROR: Failed to create sprite!");
             freeSprite();
             return;
@@ -306,7 +307,7 @@ public:
         // Initialize coordinates after setting screen dimensions
         initEyeCoordinates();
         
-        // Initialize sprite
+        // Initialize sprites
         initSprite();
         
         // Clear the display 
@@ -325,6 +326,12 @@ public:
         if(millis()-fpsTimer >= frameInterval) {
             if (_spriteInitialized) {
                 Serial.println("Update eyes called");
+
+                if (background && _bgSprite){
+                    _bgSprite->fillSprite(TFT_BLUE);
+                    //lcd_PushColors(0, 0, _bgSprite->width(), _bgSprite->height(), (uint16_t*)_bgSprite->getPointer());
+                    Serial.println("Background set to blue");
+                }
                 drawEyes();
                 
                 //Push the sprite to the display
@@ -344,7 +351,7 @@ public:
                     //spriteHeight = _sprite->height();
                     //spritePointer = (uint16_t*)_sprite->getPointer();
                     //lcd_fill(0, 0, 536, 240, TFT_BLACK);
-                    lcd_PushColors(0, 0, _sprite->width(), _sprite->height(), (uint16_t*)_sprite->getPointer());
+                    lcd_PushColors(0, 0, _bgSprite->width(), _bgSprite->height(), (uint16_t*)_bgSprite->getPointer());
                     //delay(5);
                     //lcd_PushColors((uint16_t*)_sprite->getPointer(), _sprite->width()*_sprite->height());
                 }
@@ -543,6 +550,10 @@ public:
             return NULL;
         }
         return _sprite;
+    }
+
+    void setBackground (bool bg){
+        background = bg;
     }
 
 
@@ -873,6 +884,11 @@ public:
                                           eyeRborderRadiusCurrent, _bgColor); // right eye
                 }
             Serial.println("drew happy eye");
+            }
+            //Draw on the background sprite if it exists
+            if (background){
+                _sprite->pushToSprite(_bgSprite, 0, 0);
+                Serial.println("Eyes pushed to bg sprite");
             }
         } catch (...) {
             Serial.println("ERROR: Exception caught during sprite rendering");

@@ -17,12 +17,14 @@ void setup() {
   // Initialize eyes with screen dimensions and framerate
   eyes.begin(536, 240, 90);
 
-  eyes.setWidth(160, 160);
-  eyes.setHeight(120, 120);
-  
+  //eyes.setWidth(160, 160);
+  //eyes.setHeight(120, 120);
+  eyes.setWidth(100, 100);
+  eyes.setHeight(60, 60);
+
   // Configure eyes as needed
   eyes.setMood(DEFAULT);
-  eyes.setColors(TFT_BLACK, TFT_WHITE);
+  eyes.setColors(TFT_RED, TFT_WHITE);
 
   eyes.setPosition(E);
   eyes.setCuriosity(false);
@@ -30,6 +32,7 @@ void setup() {
   eyes.setHFlicker(false);
   eyes.setVFlicker(false);
   eyes.setIdleMode(true);
+  eyes.setBackground(true);
   eyes.setAutoblinker(true, 3, 2);
 }
 
