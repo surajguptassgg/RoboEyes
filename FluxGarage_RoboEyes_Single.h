@@ -38,9 +38,13 @@ private:
     
     // Single sprite for both eyes
     TFT_eSprite* _sprite;
+
+    // Sprite for background 
+    TFT_eSprite* _bgSprite;
     
     // Flag for sprite initialization
     bool _spriteInitialized = false;
+    bool _bgSpriteInitialized = false;
     
     // Colors for eyes (moved from #define to class variables)
     uint16_t _bgColor = TFT_BLACK;    // Background color
@@ -52,6 +56,7 @@ public:
         _tft = tft;
         // Initialize sprite pointer to NULL
         _sprite = NULL;
+        _bgSprite = NULL;
         Serial.println("RoboEyes_Sprite constructor called");
     }
     
@@ -68,7 +73,12 @@ public:
             delete _sprite;
             _sprite = NULL;
         }
-        _spriteInitialized = false;
+        if (_bgSprite) {
+            _bgSprite->deleteSprite();
+            delete _bgSprite;
+            _bgSprite = NULL;
+        }
+        _bgSpriteInitialized = false;
     }
 
     // For general setup - screen size and max. frame rate
@@ -227,7 +237,7 @@ public:
         Serial.println(")");
     }
 
-    // Initialize single sprite for both eyes
+    // Initialize single sprite for both eyes and sprite for background
     void initSprite() {
         Serial.println("Initializing sprite");
         
@@ -236,9 +246,15 @@ public:
         
         // Allocate new sprite
         _sprite = new TFT_eSprite(_tft);
+        _bgSprite = new TFT_eSprite(_tft);
         
         if (!_sprite) {
             Serial.println("ERROR: Failed to allocate sprite object!");
+            return;
+        }
+
+        if (!_bgSprite) {
+            Serial.println("ERROR: Failed to allocate bg sprite object!");
             return;
         }
         
@@ -248,20 +264,29 @@ public:
             freeSprite();
             return;
         }
+
+        if (!_bgSprite->createSprite(screenWidth, screenHeight)) {
+            Serial.println("ERROR: Failed to create bg sprite!");
+            freeSprite();
+            return;
+        }
         
         // Set color depth (8-bit is more memory efficient)
         _sprite->setColorDepth(16);
+        _bgSprite->setColorDepth(16);
         
         // Initialize sprite content
         _sprite->fillSprite(_bgColor);
+        _bgSprite->fillSprite(_bgColor);
         
-        Serial.print("Sprite created: ");
+        Serial.print("Sprites created: ");
         Serial.print(screenWidth);
         Serial.print("x");
         Serial.print(screenHeight);
         Serial.println(" pixels");
         
         _spriteInitialized = true;
+        _bgSpriteInitialized = true;
     }
 
     // Startup RoboEyes with defined screen-width, screen-height and max. frames per second

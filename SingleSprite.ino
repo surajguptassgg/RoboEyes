@@ -35,7 +35,7 @@ void setup() {
 
 void loop() {
   eyes.update(); // This will draw and display the eyes
-
+  
   /*
   if (millis() > modeChangeTimer + modeChangeDuration) {
     modeChangeTimer = millis();
