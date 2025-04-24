@@ -19,12 +19,12 @@ void setup() {
 
   //eyes.setWidth(160, 160);
   //eyes.setHeight(120, 120);
-  eyes.setWidth(100, 100);
-  eyes.setHeight(60, 60);
+  eyes.setWidth(160, 160);
+  eyes.setHeight(120, 120);
 
   // Configure eyes as needed
   eyes.setMood(DEFAULT);
-  eyes.setColors(TFT_RED, TFT_WHITE);
+  eyes.setColors(TFT_TRANSPARENT, TFT_WHITE);
 
   eyes.setPosition(E);
   eyes.setCuriosity(false);
@@ -32,7 +32,7 @@ void setup() {
   eyes.setHFlicker(false);
   eyes.setVFlicker(false);
   eyes.setIdleMode(true);
-  eyes.setBackground(true);
+  eyes.setBackground(false);
   eyes.setAutoblinker(true, 3, 2);
 }
 

@@ -260,7 +260,7 @@ public:
         }
         
         // Create sprite with the size of the screen - this will hold both eyes
-        if (!_sprite->createSprite(screenWidth/2, screenHeight/2)) {
+        if (!_sprite->createSprite(screenWidth, screenHeight)) {
             Serial.println("ERROR: Failed to create sprite!");
             freeSprite();
             return;
@@ -328,14 +328,14 @@ public:
                 Serial.println("Update eyes called");
 
                 if (background && _bgSprite){
-                    _bgSprite->fillSprite(TFT_BLUE);
+                    _bgSprite->fillSprite(TFT_CYAN);
                     //lcd_PushColors(0, 0, _bgSprite->width(), _bgSprite->height(), (uint16_t*)_bgSprite->getPointer());
                     Serial.println("Background set to blue");
                 }
                 drawEyes();
                 
                 //Push the sprite to the display
-                if (_sprite) {
+                if (_sprite && background) {
                     //_sprite->pushSprite(0, 0);
                     /*
                     Serial.println("pushing to lcd now with coordinates, Right y:");
@@ -354,6 +354,8 @@ public:
                     lcd_PushColors(0, 0, _bgSprite->width(), _bgSprite->height(), (uint16_t*)_bgSprite->getPointer());
                     //delay(5);
                     //lcd_PushColors((uint16_t*)_sprite->getPointer(), _sprite->width()*_sprite->height());
+                }else if (_sprite){
+                    lcd_PushColors(0, 0, _sprite->width(), _sprite->height(), (uint16_t*)_sprite->getPointer());
                 }
             } else {
                 Serial.println("WARNING: update called but sprite not initialized!");
@@ -887,7 +889,7 @@ public:
             }
             //Draw on the background sprite if it exists
             if (background){
-                _sprite->pushToSprite(_bgSprite, 0, 0);
+                _sprite->pushToSprite(_bgSprite, 0, 0, TFT_TRANSPARENT);
                 Serial.println("Eyes pushed to bg sprite");
             }
         } catch (...) {
