@@ -8,6 +8,7 @@
 
 #include <TFT_eSPI.h>
 #include "rm67162.h"
+#include "fire.h"
 
 // For mood type switch
 #define DEFAULT 0
@@ -87,6 +88,7 @@ public:
     int frameInterval = 20; // default value for 50 frames per second (1000/50 = 20 milliseconds)
     unsigned long fpsTimer = 0; // for timing the frames per second
     bool background = 0;
+    int i=0; //for background gif
 
     // For controlling mood types and expressions
     bool tired = 0;
@@ -275,7 +277,8 @@ public:
         // Set color depth (8-bit is more memory efficient)
         _sprite->setColorDepth(16);
         _bgSprite->setColorDepth(16);
-        
+        _bgSprite->setSwapBytes(true);
+
         // Initialize sprite content
         _sprite->fillSprite(_bgColor);
         _bgSprite->fillSprite(_bgColor);
@@ -328,9 +331,11 @@ public:
                 Serial.println("Update eyes called");
 
                 if (background && _bgSprite){
-                    _bgSprite->fillSprite(TFT_CYAN);
+                    //_bgSprite->fillSprite(TFT_CYAN);
+                    _bgSprite->fillSprite(_bgColor);
+                    _bgSprite->pushImage(60,160,420,173,fireallArray[i]);
                     //lcd_PushColors(0, 0, _bgSprite->width(), _bgSprite->height(), (uint16_t*)_bgSprite->getPointer());
-                    Serial.println("Background set to blue");
+                    Serial.println("Background set");
                 }
                 drawEyes();
                 
@@ -368,6 +373,7 @@ public:
             }
             fpsTimer = millis();
         }
+        i=(i+1)%frames;
     }
 
 
