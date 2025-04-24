@@ -8,7 +8,6 @@
 
 #include <TFT_eSPI.h>
 #include "rm67162.h"
-#include "fire.h"
 
 // For mood type switch
 #define DEFAULT 0
@@ -92,6 +91,8 @@ public:
     unsigned long gifTimer = 0; // Timer for GIF frame updates
     int gifInterval = 42; // Interval between GIF frames in milliseconds
     int i=0; //current background gif frame
+    int frames = 0; //Total number of background gif frames
+    uint16_t** backGif; //The gif
 
     // For controlling mood types and expressions
     bool tired = 0;
@@ -342,7 +343,7 @@ public:
                         gifTimer = millis();   // Reset timer
                     }
 
-                    _bgSprite->pushImage(60,160,420,173,fireallArray[i]);
+                    _bgSprite->pushImage(60,160,420,173,(uint16_t*) backGif[i]);
                     //lcd_PushColors(0, 0, _bgSprite->width(), _bgSprite->height(), (uint16_t*)_bgSprite->getPointer());
                     Serial.println("Background set");
                 }
@@ -569,8 +570,10 @@ public:
         return _sprite;
     }
 
-    void setBackground (bool bg){
+    void setBackground (bool bg, int frameCount, uint16_t** gif){
         background = bg;
+        frames = frameCount;
+        backGif = (uint16_t**)gif;
     }
 
 

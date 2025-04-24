@@ -1,6 +1,7 @@
 #include <TFT_eSPI.h>
 #include "FluxGarage_RoboEyes_Single.h"
 #include "rm67162.h"
+#include "fire.h"
 
 TFT_eSPI tft = TFT_eSPI();
 roboEyes_Sprite eyes(&tft);
@@ -17,8 +18,6 @@ void setup() {
   // Initialize eyes with screen dimensions and framerate
   eyes.begin(536, 240, 90);
 
-  //eyes.setWidth(160, 160);
-  //eyes.setHeight(120, 120);
   eyes.setWidth(160, 160);
   eyes.setHeight(120, 120);
 
@@ -26,19 +25,43 @@ void setup() {
   eyes.setMood(ANGRY);
   eyes.setColors(TFT_BLACK, TFT_WHITE);
 
-  //eyes.setPosition(99);
+  //eyes.setPosition(9);
   eyes.setCuriosity(false);
   eyes.setCyclops(false);
   eyes.setHFlicker(false);
   eyes.setVFlicker(false);
-  eyes.setIdleMode(true);
-  eyes.setBackground(true);
+  eyes.setIdleMode(false);
+  eyes.setBackground(true, frames, (uint16_t**)fireallArray);
   eyes.setAutoblinker(true, 3, 2);
 }
 
 void loop() {
   eyes.update(); // This will draw and display the eyes
-  
+  eyes.setPosition(9);
+  /*
+  if (millis() > modeChangeTimer + modeChangeDuration) {
+    modeChangeTimer = millis();
+    currentMode = (currentMode + 1) % 5;
+
+    switch(currentMode){
+      case 0:
+        eyes.setPosition(N);
+        break;
+      case 1:
+        eyes.setPosition(W);
+        break;
+      case 2:
+        eyes.setPosition(S);
+        break;
+      case 3:
+        eyes.setPosition(E);
+        break;     
+      case 4:
+        eyes.setPosition(9);
+        break;   
+    }
+  }
+  */
   /*
   if (millis() > modeChangeTimer + modeChangeDuration) {
     modeChangeTimer = millis();
