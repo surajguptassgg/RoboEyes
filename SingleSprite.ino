@@ -24,7 +24,7 @@ void setup() {
 
   // Configure eyes as needed
   eyes.setMood(ANGRY);
-  eyes.setColors(TFT_TRANSPARENT, TFT_WHITE);
+  eyes.setColors(TFT_BLACK, TFT_WHITE);
 
   //eyes.setPosition(99);
   eyes.setCuriosity(false);
