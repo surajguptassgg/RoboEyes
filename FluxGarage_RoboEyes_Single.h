@@ -343,7 +343,7 @@ public:
                         gifTimer = millis();   // Reset timer
                     }
 
-                    _bgSprite->pushImage(60,160,420,173,(uint16_t*) backGif[i]);
+                    _bgSprite->pushImage(0,150,536,187,(uint16_t*) backGif[i]);
                     //lcd_PushColors(0, 0, _bgSprite->width(), _bgSprite->height(), (uint16_t*)_bgSprite->getPointer());
                     Serial.println("Background set");
                 }
