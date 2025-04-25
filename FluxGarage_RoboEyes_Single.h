@@ -38,9 +38,13 @@ private:
     
     // Single sprite for both eyes
     TFT_eSprite* _sprite;
+
+    // Sprite for background 
+    TFT_eSprite* _bgSprite;
     
     // Flag for sprite initialization
     bool _spriteInitialized = false;
+    bool _bgSpriteInitialized = false;
     
     // Colors for eyes (moved from #define to class variables)
     uint16_t _bgColor = TFT_BLACK;    // Background color
@@ -52,6 +56,7 @@ public:
         _tft = tft;
         // Initialize sprite pointer to NULL
         _sprite = NULL;
+        _bgSprite = NULL;
         Serial.println("RoboEyes_Sprite constructor called");
     }
     
@@ -68,7 +73,12 @@ public:
             delete _sprite;
             _sprite = NULL;
         }
-        _spriteInitialized = false;
+        if (_bgSprite) {
+            _bgSprite->deleteSprite();
+            delete _bgSprite;
+            _bgSprite = NULL;
+        }
+        _bgSpriteInitialized = false;
     }
 
     // For general setup - screen size and max. frame rate
@@ -76,6 +86,13 @@ public:
     int screenHeight = 240; // TFT display height, in pixels
     int frameInterval = 20; // default value for 50 frames per second (1000/50 = 20 milliseconds)
     unsigned long fpsTimer = 0; // for timing the frames per second
+    bool background = 0;
+
+    unsigned long gifTimer = 0; // Timer for GIF frame updates
+    int gifInterval = 42; // Interval between GIF frames in milliseconds
+    int i=0; //current background gif frame
+    int frames = 0; //Total number of background gif frames
+    uint16_t** backGif; //The gif
 
     // For controlling mood types and expressions
     bool tired = 0;
@@ -227,7 +244,7 @@ public:
         Serial.println(")");
     }
 
-    // Initialize single sprite for both eyes
+    // Initialize single sprite for both eyes and sprite for background
     void initSprite() {
         Serial.println("Initializing sprite");
         
@@ -236,9 +253,15 @@ public:
         
         // Allocate new sprite
         _sprite = new TFT_eSprite(_tft);
+        _bgSprite = new TFT_eSprite(_tft);
         
         if (!_sprite) {
             Serial.println("ERROR: Failed to allocate sprite object!");
+            return;
+        }
+
+        if (!_bgSprite) {
+            Serial.println("ERROR: Failed to allocate bg sprite object!");
             return;
         }
         
@@ -248,20 +271,30 @@ public:
             freeSprite();
             return;
         }
+
+        if (!_bgSprite->createSprite(screenWidth, screenHeight)) {
+            Serial.println("ERROR: Failed to create bg sprite!");
+            freeSprite();
+            return;
+        }
         
         // Set color depth (8-bit is more memory efficient)
         _sprite->setColorDepth(16);
-        
+        _bgSprite->setColorDepth(16);
+        _bgSprite->setSwapBytes(true);
+
         // Initialize sprite content
         _sprite->fillSprite(_bgColor);
+        _bgSprite->fillSprite(_bgColor);
         
-        Serial.print("Sprite created: ");
+        Serial.print("Sprites created: ");
         Serial.print(screenWidth);
         Serial.print("x");
         Serial.print(screenHeight);
         Serial.println(" pixels");
         
         _spriteInitialized = true;
+        _bgSpriteInitialized = true;
     }
 
     // Startup RoboEyes with defined screen-width, screen-height and max. frames per second
@@ -281,7 +314,7 @@ public:
         // Initialize coordinates after setting screen dimensions
         initEyeCoordinates();
         
-        // Initialize sprite
+        // Initialize sprites
         initSprite();
         
         // Clear the display 
@@ -300,10 +333,24 @@ public:
         if(millis()-fpsTimer >= frameInterval) {
             if (_spriteInitialized) {
                 Serial.println("Update eyes called");
+
+                if (background && _bgSprite){
+                    //_bgSprite->fillSprite(TFT_CYAN);
+                    _bgSprite->fillSprite(_bgColor);
+
+                    if(millis() - gifTimer >= gifInterval) {
+                        i = (i + 1) % frames;  // Update frame index
+                        gifTimer = millis();   // Reset timer
+                    }
+
+                    _bgSprite->pushImage(60,160,420,173,(uint16_t*) backGif[i]);
+                    //lcd_PushColors(0, 0, _bgSprite->width(), _bgSprite->height(), (uint16_t*)_bgSprite->getPointer());
+                    Serial.println("Background set");
+                }
                 drawEyes();
                 
                 //Push the sprite to the display
-                if (_sprite) {
+                if (_sprite && background) {
                     //_sprite->pushSprite(0, 0);
                     /*
                     Serial.println("pushing to lcd now with coordinates, Right y:");
@@ -319,9 +366,11 @@ public:
                     //spriteHeight = _sprite->height();
                     //spritePointer = (uint16_t*)_sprite->getPointer();
                     //lcd_fill(0, 0, 536, 240, TFT_BLACK);
-                    lcd_PushColors(0, 0, _sprite->width(), _sprite->height(), (uint16_t*)_sprite->getPointer());
+                    lcd_PushColors(0, 0, _bgSprite->width(), _bgSprite->height(), (uint16_t*)_bgSprite->getPointer());
                     //delay(5);
                     //lcd_PushColors((uint16_t*)_sprite->getPointer(), _sprite->width()*_sprite->height());
+                }else if (_sprite){
+                    lcd_PushColors(0, 0, _sprite->width(), _sprite->height(), (uint16_t*)_sprite->getPointer());
                 }
             } else {
                 Serial.println("WARNING: update called but sprite not initialized!");
@@ -331,8 +380,9 @@ public:
                     // Draw a rectangle directly to show we're running
                     _tft->fillRect(10, 10, 20, 20, TFT_BLUE);
                 }
-            }
+            }            
             fpsTimer = millis();
+            //i=(i+1)%frames;
         }
     }
 
@@ -518,6 +568,12 @@ public:
             return NULL;
         }
         return _sprite;
+    }
+
+    void setBackground (bool bg, int frameCount, uint16_t** gif){
+        background = bg;
+        frames = frameCount;
+        backGif = (uint16_t**)gif;
     }
 
 
@@ -789,70 +845,139 @@ public:
         eyelidsAngryHeight = (eyelidsAngryHeight + eyelidsAngryHeightNext)/2;
         eyelidsHappyBottomOffset = (eyelidsHappyBottomOffset + eyelidsHappyBottomOffsetNext)/2;
         Serial.println("all calculations done, prepping for actual drawings");
-        try {
-            //// ACTUAL DRAWINGS WITH SPRITE ////
-            
-            // Clear sprite for next frame
-            _sprite->fillSprite(_bgColor);
-            
-            // Draw basic eye rectangles
-            _sprite->fillRoundRect(eyeLx, eyeLy, eyeLwidthCurrent, eyeLheightCurrent, 
-                                  eyeLborderRadiusCurrent, _mainColor); // left eye
-            
-            if (!cyclops) {
-                _sprite->fillRoundRect(eyeRx, eyeRy, eyeRwidthCurrent, eyeRheightCurrent, 
-                                      eyeRborderRadiusCurrent, _mainColor); // right eye
-            }
-            Serial.println("drew basic eye");
-            // Draw tired top eyelids
-            if (tired) {
+        if (background && _bgSprite){
+            try {
+                //// ACTUAL DRAWINGS WITH SPRITE ////
+                
+                // Clear sprite for next frame
+                //_sprite->fillSprite(_bgColor);
+                
+                // Draw basic eye rectangles
+                _bgSprite->fillRoundRect(eyeLx, eyeLy, eyeLwidthCurrent, eyeLheightCurrent, 
+                                    eyeLborderRadiusCurrent, _mainColor); // left eye
+                
                 if (!cyclops) {
-                    _sprite->fillTriangle(eyeLx, eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
-                                         eyeLx, eyeLy+eyelidsTiredHeight-1, _bgColor); // left eye 
-                    _sprite->fillTriangle(eyeRx, eyeRy-1, eyeRx+eyeRwidthCurrent, eyeRy-1, 
-                                         eyeRx+eyeRwidthCurrent, eyeRy+eyelidsTiredHeight-1, _bgColor); // right eye
-                } else {
-                    // Cyclops tired eyelids
-                    _sprite->fillTriangle(eyeLx, eyeLy-1, eyeLx+(eyeLwidthCurrent/2), eyeLy-1, 
-                                         eyeLx, eyeLy+eyelidsTiredHeight-1, _bgColor); // left eyelid half
-                    _sprite->fillTriangle(eyeLx+(eyeLwidthCurrent/2), eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
-                                         eyeLx+eyeLwidthCurrent, eyeLy+eyelidsTiredHeight-1, _bgColor); // right eyelid half
+                    _bgSprite->fillRoundRect(eyeRx, eyeRy, eyeRwidthCurrent, eyeRheightCurrent, 
+                                        eyeRborderRadiusCurrent, _mainColor); // right eye
                 }
-            Serial.println("drew tired eye");
-            }
-            // Draw angry top eyelids
-            if (angry) {
-                if (!cyclops) { 
-                    _sprite->fillTriangle(eyeLx, eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
-                                         eyeLx+eyeLwidthCurrent, eyeLy+eyelidsAngryHeight-1, _bgColor); // left eye
-                    _sprite->fillTriangle(eyeRx, eyeRy-1, eyeRx+eyeRwidthCurrent, eyeRy-1, 
-                                         eyeRx, eyeRy+eyelidsAngryHeight-1, _bgColor); // right eye
-                } else {
-                    // Cyclops angry eyelids
-                    _sprite->fillTriangle(eyeLx, eyeLy-1, eyeLx+(eyeLwidthCurrent/2), eyeLy-1, 
-                                         eyeLx+(eyeLwidthCurrent/2), eyeLy+eyelidsAngryHeight-1, _bgColor); // left eyelid half
-                    _sprite->fillTriangle(eyeLx+(eyeLwidthCurrent/2), eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
-                                         eyeLx+(eyeLwidthCurrent/2), eyeLy+eyelidsAngryHeight-1, _bgColor); // right eyelid half
+                Serial.println("drew basic eye");
+                // Draw tired top eyelids
+                if (tired) {
+                    if (!cyclops) {
+                        _bgSprite->fillTriangle(eyeLx, eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
+                                            eyeLx, eyeLy+eyelidsTiredHeight-1, _bgColor); // left eye 
+                        _bgSprite->fillTriangle(eyeRx, eyeRy-1, eyeRx+eyeRwidthCurrent, eyeRy-1, 
+                                            eyeRx+eyeRwidthCurrent, eyeRy+eyelidsTiredHeight-1, _bgColor); // right eye
+                    } else {
+                        // Cyclops tired eyelids
+                        _bgSprite->fillTriangle(eyeLx, eyeLy-1, eyeLx+(eyeLwidthCurrent/2), eyeLy-1, 
+                                            eyeLx, eyeLy+eyelidsTiredHeight-1, _bgColor); // left eyelid half
+                        _bgSprite->fillTriangle(eyeLx+(eyeLwidthCurrent/2), eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
+                                            eyeLx+eyeLwidthCurrent, eyeLy+eyelidsTiredHeight-1, _bgColor); // right eyelid half
+                    }
+                Serial.println("drew tired eye");
                 }
-            Serial.println("drew angry eye");
-            }
-            // Draw happy bottom eyelids
-            if (happy) {
-                _sprite->fillRoundRect(eyeLx-1, (eyeLy+eyeLheightCurrent)-eyelidsHappyBottomOffset+1, 
-                                      eyeLwidthCurrent+2, eyeLheightDefault, 
-                                      eyeLborderRadiusCurrent, _bgColor); // left eye
-                                      
-                if (!cyclops) { 
-                    _sprite->fillRoundRect(eyeRx-1, (eyeRy+eyeRheightCurrent)-eyelidsHappyBottomOffset+1, 
-                                          eyeRwidthCurrent+2, eyeRheightDefault, 
-                                          eyeRborderRadiusCurrent, _bgColor); // right eye
+                // Draw angry top eyelids
+                if (angry) {
+                    if (!cyclops) { 
+                        _bgSprite->fillTriangle(eyeLx, eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
+                                            eyeLx+eyeLwidthCurrent, eyeLy+eyelidsAngryHeight-1, _bgColor); // left eye
+                        _bgSprite->fillTriangle(eyeRx, eyeRy-1, eyeRx+eyeRwidthCurrent, eyeRy-1, 
+                                            eyeRx, eyeRy+eyelidsAngryHeight-1, _bgColor); // right eye
+                    } else {
+                        // Cyclops angry eyelids
+                        _bgSprite->fillTriangle(eyeLx, eyeLy-1, eyeLx+(eyeLwidthCurrent/2), eyeLy-1, 
+                                            eyeLx+(eyeLwidthCurrent/2), eyeLy+eyelidsAngryHeight-1, _bgColor); // left eyelid half
+                        _bgSprite->fillTriangle(eyeLx+(eyeLwidthCurrent/2), eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
+                                            eyeLx+(eyeLwidthCurrent/2), eyeLy+eyelidsAngryHeight-1, _bgColor); // right eyelid half
+                    }
+                Serial.println("drew angry eye");
                 }
-            Serial.println("drew happy eye");
-            }
-        } catch (...) {
+                // Draw happy bottom eyelids
+                if (happy) {
+                    _bgSprite->fillRoundRect(eyeLx-1, (eyeLy+eyeLheightCurrent)-eyelidsHappyBottomOffset+1, 
+                                        eyeLwidthCurrent+2, eyeLheightDefault, 
+                                        eyeLborderRadiusCurrent, _bgColor); // left eye
+                                        
+                    if (!cyclops) { 
+                        _bgSprite->fillRoundRect(eyeRx-1, (eyeRy+eyeRheightCurrent)-eyelidsHappyBottomOffset+1, 
+                                            eyeRwidthCurrent+2, eyeRheightDefault, 
+                                            eyeRborderRadiusCurrent, _bgColor); // right eye
+                    }
+                Serial.println("drew happy eye");
+                }
+            } catch (...) {
             Serial.println("ERROR: Exception caught during sprite rendering");
             // Draw an error indicator
             //_tft->fillTriangle(10, 10, 30, 10, 20, 30, TFT_RED);
+            }
+        }
+        else{
+            try {
+                //// ACTUAL DRAWINGS WITH SPRITE ////
+                
+                // Clear sprite for next frame
+                _sprite->fillSprite(_bgColor);
+                
+                // Draw basic eye rectangles
+                _sprite->fillRoundRect(eyeLx, eyeLy, eyeLwidthCurrent, eyeLheightCurrent, 
+                                    eyeLborderRadiusCurrent, _mainColor); // left eye
+                
+                if (!cyclops) {
+                    _sprite->fillRoundRect(eyeRx, eyeRy, eyeRwidthCurrent, eyeRheightCurrent, 
+                                        eyeRborderRadiusCurrent, _mainColor); // right eye
+                }
+                Serial.println("drew basic eye");
+                // Draw tired top eyelids
+                if (tired) {
+                    if (!cyclops) {
+                        _sprite->fillTriangle(eyeLx, eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
+                                            eyeLx, eyeLy+eyelidsTiredHeight-1, _bgColor); // left eye 
+                        _sprite->fillTriangle(eyeRx, eyeRy-1, eyeRx+eyeRwidthCurrent, eyeRy-1, 
+                                            eyeRx+eyeRwidthCurrent, eyeRy+eyelidsTiredHeight-1, _bgColor); // right eye
+                    } else {
+                        // Cyclops tired eyelids
+                        _sprite->fillTriangle(eyeLx, eyeLy-1, eyeLx+(eyeLwidthCurrent/2), eyeLy-1, 
+                                            eyeLx, eyeLy+eyelidsTiredHeight-1, _bgColor); // left eyelid half
+                        _sprite->fillTriangle(eyeLx+(eyeLwidthCurrent/2), eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
+                                            eyeLx+eyeLwidthCurrent, eyeLy+eyelidsTiredHeight-1, _bgColor); // right eyelid half
+                    }
+                Serial.println("drew tired eye");
+                }
+                // Draw angry top eyelids
+                if (angry) {
+                    if (!cyclops) { 
+                        _sprite->fillTriangle(eyeLx, eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
+                                            eyeLx+eyeLwidthCurrent, eyeLy+eyelidsAngryHeight-1, _bgColor); // left eye
+                        _sprite->fillTriangle(eyeRx, eyeRy-1, eyeRx+eyeRwidthCurrent, eyeRy-1, 
+                                            eyeRx, eyeRy+eyelidsAngryHeight-1, _bgColor); // right eye
+                    } else {
+                        // Cyclops angry eyelids
+                        _sprite->fillTriangle(eyeLx, eyeLy-1, eyeLx+(eyeLwidthCurrent/2), eyeLy-1, 
+                                            eyeLx+(eyeLwidthCurrent/2), eyeLy+eyelidsAngryHeight-1, _bgColor); // left eyelid half
+                        _sprite->fillTriangle(eyeLx+(eyeLwidthCurrent/2), eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
+                                            eyeLx+(eyeLwidthCurrent/2), eyeLy+eyelidsAngryHeight-1, _bgColor); // right eyelid half
+                    }
+                Serial.println("drew angry eye");
+                }
+                // Draw happy bottom eyelids
+                if (happy) {
+                    _sprite->fillRoundRect(eyeLx-1, (eyeLy+eyeLheightCurrent)-eyelidsHappyBottomOffset+1, 
+                                        eyeLwidthCurrent+2, eyeLheightDefault, 
+                                        eyeLborderRadiusCurrent, _bgColor); // left eye
+                                        
+                    if (!cyclops) { 
+                        _sprite->fillRoundRect(eyeRx-1, (eyeRy+eyeRheightCurrent)-eyelidsHappyBottomOffset+1, 
+                                            eyeRwidthCurrent+2, eyeRheightDefault, 
+                                            eyeRborderRadiusCurrent, _bgColor); // right eye
+                    }
+                Serial.println("drew happy eye");
+                }
+            } catch (...) {
+            Serial.println("ERROR: Exception caught during sprite rendering");
+            // Draw an error indicator
+            //_tft->fillTriangle(10, 10, 30, 10, 20, 30, TFT_RED);
+            }
         }
     } // end of drawEyes method
 
