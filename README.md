@@ -6,4 +6,5 @@ with the SSD-1306 driver.
 
 The driver used in this project - rm67162
 
-Planning to add more features as well.
+Added Features - 
+1. Functionality to add gifs in the background
