@@ -1,17 +1,24 @@
 #include <TFT_eSPI.h>
 #include "FluxGarage_RoboEyes_Single.h"
 #include "rm67162.h"
-#include "fire.h"
+#include "SDAnimation.h"
 
 TFT_eSPI tft = TFT_eSPI();
 roboEyes_Sprite eyes(&tft);
+
+SDAnimation fireAnimation;
 
 int currentMode = 0;
 unsigned long modeChangeTimer = 0;
 int modeChangeDuration = 3000;
 
+uint16_t* fireFramePointers[30];
+
 void setup() {
   Serial.begin(115200);
+
+  //delay(5000);
+  //SD_card_Init();
   //rm67162_init();
   //lcd_setRotation(1);
   
@@ -31,11 +38,44 @@ void setup() {
   eyes.setHFlicker(false);
   eyes.setVFlicker(false);
   eyes.setIdleMode(false);
-  eyes.setBackground(true, frames, (uint16_t**)fireallArray);
+  //eyes.setBackground(true, frames, (uint16_t**)fireallArray);
   eyes.setAutoblinker(true, 3, 2);
+
+  //delay(8000);
+  // Initialize our animation from SD card
+  if (fireAnimation.begin("/sd_card/sd_card/animations/fire", 30)) {
+    Serial.println("Successfully loaded fire animation from SD card");
+    
+    // Get frame count from animation
+    int frameCount = fireAnimation.getFrameCount();
+    // Prepare our frame pointer array for eyes.setBackground
+    for (int i = 0; i < frameCount; i++) {
+      fireFramePointers[i] = fireAnimation.getFrame(i);
+    }
+    
+    // Set the animation as background
+    eyes.setBackground(true, frameCount, (uint16_t**)fireFramePointers);
+  } else {
+    Serial.println("Failed to load animation from SD card");
+  }
 }
 
 void loop() {
+
+  /*
+  static unsigned long lastFrameTime = 0;
+  if (millis() - lastFrameTime > 42) { // 42ms = ~24fps
+    lastFrameTime = millis();
+    
+    // Get next frame
+    uint16_t* nextFrame = fireAnimation.getNextFrame();
+    if (nextFrame) {
+      // Update the current frame pointer in our array
+      int currentFrameIndex = fireAnimation.getCurrentFrameIndex();
+      fireFramePointers[currentFrameIndex] = nextFrame;
+    }
+  }
+  */
   eyes.update(); // This will draw and display the eyes
   eyes.setPosition(9);
   /*

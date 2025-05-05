@@ -332,7 +332,7 @@ public:
         // Limit drawing updates to defined max framerate
         if(millis()-fpsTimer >= frameInterval) {
             if (_spriteInitialized) {
-                Serial.println("Update eyes called");
+                //Serial.println("Update eyes called");
 
                 if (background && _bgSprite){
                     //_bgSprite->fillSprite(TFT_CYAN);
@@ -844,7 +844,7 @@ public:
         eyelidsTiredHeight = (eyelidsTiredHeight + eyelidsTiredHeightNext)/2;
         eyelidsAngryHeight = (eyelidsAngryHeight + eyelidsAngryHeightNext)/2;
         eyelidsHappyBottomOffset = (eyelidsHappyBottomOffset + eyelidsHappyBottomOffsetNext)/2;
-        Serial.println("all calculations done, prepping for actual drawings");
+        //Serial.println("all calculations done, prepping for actual drawings");
         if (background && _bgSprite){
             try {
                 //// ACTUAL DRAWINGS WITH SPRITE ////
@@ -860,7 +860,7 @@ public:
                     _bgSprite->fillRoundRect(eyeRx, eyeRy, eyeRwidthCurrent, eyeRheightCurrent, 
                                         eyeRborderRadiusCurrent, _mainColor); // right eye
                 }
-                Serial.println("drew basic eye");
+                //Serial.println("drew basic eye");
                 // Draw tired top eyelids
                 if (tired) {
                     if (!cyclops) {
@@ -875,7 +875,7 @@ public:
                         _bgSprite->fillTriangle(eyeLx+(eyeLwidthCurrent/2), eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
                                             eyeLx+eyeLwidthCurrent, eyeLy+eyelidsTiredHeight-1, _bgColor); // right eyelid half
                     }
-                Serial.println("drew tired eye");
+                //Serial.println("drew tired eye");
                 }
                 // Draw angry top eyelids
                 if (angry) {
@@ -891,7 +891,7 @@ public:
                         _bgSprite->fillTriangle(eyeLx+(eyeLwidthCurrent/2), eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
                                             eyeLx+(eyeLwidthCurrent/2), eyeLy+eyelidsAngryHeight-1, _bgColor); // right eyelid half
                     }
-                Serial.println("drew angry eye");
+                //Serial.println("drew angry eye");
                 }
                 // Draw happy bottom eyelids
                 if (happy) {
@@ -904,7 +904,7 @@ public:
                                             eyeRwidthCurrent+2, eyeRheightDefault, 
                                             eyeRborderRadiusCurrent, _bgColor); // right eye
                     }
-                Serial.println("drew happy eye");
+                //Serial.println("drew happy eye");
                 }
             } catch (...) {
             Serial.println("ERROR: Exception caught during sprite rendering");
@@ -927,7 +927,7 @@ public:
                     _sprite->fillRoundRect(eyeRx, eyeRy, eyeRwidthCurrent, eyeRheightCurrent, 
                                         eyeRborderRadiusCurrent, _mainColor); // right eye
                 }
-                Serial.println("drew basic eye");
+                //Serial.println("drew basic eye");
                 // Draw tired top eyelids
                 if (tired) {
                     if (!cyclops) {
@@ -942,7 +942,7 @@ public:
                         _sprite->fillTriangle(eyeLx+(eyeLwidthCurrent/2), eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
                                             eyeLx+eyeLwidthCurrent, eyeLy+eyelidsTiredHeight-1, _bgColor); // right eyelid half
                     }
-                Serial.println("drew tired eye");
+                //Serial.println("drew tired eye");
                 }
                 // Draw angry top eyelids
                 if (angry) {
@@ -958,7 +958,7 @@ public:
                         _sprite->fillTriangle(eyeLx+(eyeLwidthCurrent/2), eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
                                             eyeLx+(eyeLwidthCurrent/2), eyeLy+eyelidsAngryHeight-1, _bgColor); // right eyelid half
                     }
-                Serial.println("drew angry eye");
+                //Serial.println("drew angry eye");
                 }
                 // Draw happy bottom eyelids
                 if (happy) {
@@ -971,7 +971,7 @@ public:
                                             eyeRwidthCurrent+2, eyeRheightDefault, 
                                             eyeRborderRadiusCurrent, _bgColor); // right eye
                     }
-                Serial.println("drew happy eye");
+                //Serial.println("drew happy eye");
                 }
             } catch (...) {
             Serial.println("ERROR: Exception caught during sprite rendering");
