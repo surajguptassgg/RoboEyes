@@ -93,6 +93,10 @@ public:
     int i=0; //current background gif frame
     int frames = 0; //Total number of background gif frames
     uint16_t** backGif; //The gif
+    int gifWidth = 0;
+    int gifHeight = 0;
+    int gifxpos = 0;
+    int gifypos = 0;
 
     // For controlling mood types and expressions
     bool tired = 0;
@@ -343,9 +347,9 @@ public:
                         gifTimer = millis();   // Reset timer
                     }
 
-                    _bgSprite->pushImage(0,150,536,187,(uint16_t*) backGif[i]);
+                    _bgSprite->pushImage(gifxpos,gifypos,gifWidth,gifHeight,(uint16_t*) backGif[i]);
                     //lcd_PushColors(0, 0, _bgSprite->width(), _bgSprite->height(), (uint16_t*)_bgSprite->getPointer());
-                    Serial.println("Background set");
+                    //Serial.println("Background set");
                 }
                 drawEyes();
                 
@@ -570,10 +574,22 @@ public:
         return _sprite;
     }
 
-    void setBackground (bool bg, int frameCount, uint16_t** gif){
-        background = bg;
-        frames = frameCount;
-        backGif = (uint16_t**)gif;
+    void setBackground (bool bg, int width = 0, int height = 0, int x = 0, int y = 0, int frameCount = 0, uint16_t** gif = NULL){
+        if (bg){
+          gifxpos = x;
+          gifypos = y;
+          gifWidth = width;
+          gifHeight = height;
+          background = bg;
+          frames = frameCount;
+          backGif = (uint16_t**)gif;
+        }else {
+          background = bg;
+          Serial.println("BG reset: Clearing screen");
+          _bgSprite->fillSprite(_bgColor);
+          lcd_PushColors(0, 0, _bgSprite->width(), _bgSprite->height(), (uint16_t*)_bgSprite->getPointer());
+          lcd_PushColors(0, 0, _sprite->width(), _sprite->height(), (uint16_t*)_sprite->getPointer());
+        }
     }
 
 

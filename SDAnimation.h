@@ -45,7 +45,7 @@ public:
         Serial.printf("Initializing animation from %s\n", animationPath);
         
         // Make sure SD card is initialized - just call it, don't check return value
-        SD_card_Init();
+        //SD_card_Init();
         
         _basePath = String(animationPath);
         _frameBufferCount = buffersToKeep;
@@ -80,7 +80,7 @@ public:
         
         // Allocate memory for each buffer
         for (int i = 0; i < _frameBufferCount; i++) {
-            _frameBuffers[i] = (uint16_t*)malloc(_width * _height * sizeof(uint16_t));
+            _frameBuffers[i] = (uint16_t*)ps_malloc(_width * _height * sizeof(uint16_t));
             if (!_frameBuffers[i]) {
                 Serial.printf("Failed to allocate memory for frame buffer %d\n", i);
                 freeBuffers();
@@ -188,6 +188,14 @@ public:
     void getFrameDimensions(int* width, int* height) {
         if (width) *width = _width;
         if (height) *height = _height;
+    }
+
+    int getWidth (){
+      return _width;
+    }
+
+    int getHeight (){
+      return _height;
     }
     
     // Get current frame index
