@@ -17,7 +17,7 @@ int modeChangeDuration = 8000;
 float batteryVoltage = 0;
 int batteryPercentage = 0;
 unsigned long batteryCheckTimer = 0;
-const int batteryCheckInterval = 5000; // Check every 5 seconds
+const int batteryCheckInterval = 60000; // Check every 60 seconds
 
 uint16_t* fireFramePointers[30];
 
@@ -37,7 +37,7 @@ void setup() {
   eyes.setHeight(120, 120);
 
   // Configure eyes as needed
-  eyes.setMood(ANGRY);
+  //eyes.setMood(DEFAULT);
   eyes.setColors(TFT_BLACK, TFT_WHITE);
 
   //eyes.setPosition(9);
@@ -45,15 +45,18 @@ void setup() {
   eyes.setCyclops(false);
   eyes.setHFlicker(false);
   eyes.setVFlicker(false);
-  eyes.setIdleMode(false);
+  eyes.setIdleMode(true);
   //eyes.setBackground(true, frames, (uint16_t**)fireallArray);
   eyes.setAutoblinker(true, 3, 2);
+  Serial.printf("Checking battery");
+  checkBattery();
+  //switchAnimation("/sd_card/sd_card/animations/charge", 350, 90, 25);
 
   //delay(8000);
   // Initialize our animation from SD card
 }
 
-void switchAnimation(const char* animPath, int x, int y) {
+void switchAnimation(const char* animPath, int x, int y, int buffers) {
   // First, fully delete and recreate the animation object
   fireAnimation.~SDAnimation(); // Call destructor manually
   new(&fireAnimation) SDAnimation(); // Placement new to reinitialize
@@ -65,7 +68,7 @@ void switchAnimation(const char* animPath, int x, int y) {
                 heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
   
   // Now try to load the new animation with fewer buffers
-  if (fireAnimation.begin(animPath, 13)) { // Try with just 2 buffers first
+  if (fireAnimation.begin(animPath, buffers)) {
     Serial.printf("Successfully loaded animation from %s\n", animPath);
     
     int frameCount = fireAnimation.getFrameCount();
@@ -93,6 +96,45 @@ void switchAnimation(const char* animPath, int x, int y) {
   }
 }
 
+void checkBattery() {
+  //Serial.printf("checkBattery Called");
+  int adcData = 0;
+    // Get battery voltage
+  adc_get_value(&batteryVoltage, &adcData);
+  
+  // Convert to percentage (for standard 3.7V LiPo)
+  batteryPercentage = map(constrain(batteryVoltage * 100, 300, 420), 300, 420, 0, 100);
+  Serial.print(batteryPercentage);
+  if (batteryPercentage < 10){
+    eyes.setMood(TIRED);
+    eyes.setPosition(5);
+    switchAnimation("/sd_card/sd_card/animations/charge", 420, 20, 2);
+    //Serial.printf("Battery checked, mood set to tired");
+  }else if (batteryPercentage >= 10 && batteryPercentage < 65){
+    eyes.setMood(DEFAULT);
+    //Serial.printf("Battery checked, mood set to default");
+  }else if (batteryPercentage >= 65 && batteryPercentage < 95){
+    eyes.setMood(HAPPY);
+    //Serial.printf("Battery checked, mood set to happy");
+  }else {
+    eyes.setMood(ANGRY);
+    eyes.setIdleMode(false);
+    eyes.setPosition(9);
+    switchAnimation("/sd_card/sd_card/animations/fire", 0, 150, 15);
+  }
+
+  eyes.setBatteryPercentage(batteryPercentage);
+  
+  // Print for debugging
+  //Serial.print("Battery voltage: ");
+  //Serial.print(batteryVoltage);
+  //Serial.print("V (");
+  //Serial.print(batteryPercentage);
+  //Serial.println("%)");
+  
+  batteryCheckTimer = millis();
+}
+
 void loop() {
 
   /*
@@ -111,25 +153,8 @@ void loop() {
   */
   eyes.update(); // This will draw and display the eyes
   //eyes.setPosition(9);
-  if (millis() - batteryCheckTimer >= batteryCheckInterval) {
-    int adcData = 0;
-    
-    // Get battery voltage
-    adc_get_value(&batteryVoltage, &adcData);
-    
-    // Convert to percentage (for standard 3.7V LiPo)
-    batteryPercentage = map(constrain(batteryVoltage * 100, 300, 420), 300, 420, 0, 100);
-
-    eyes.setBatteryPercentage(batteryPercentage);
-    
-    // Print for debugging
-    Serial.print("Battery voltage: ");
-    Serial.print(batteryVoltage);
-    Serial.print("V (");
-    Serial.print(batteryPercentage);
-    Serial.println("%)");
-    
-    batteryCheckTimer = millis();
+  if (millis() - batteryCheckTimer >= batteryCheckInterval) {   
+    checkBattery();
   }
   /*
   if (millis() > modeChangeTimer + modeChangeDuration) {

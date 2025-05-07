@@ -30,10 +30,10 @@
 #define NW 8 // north-west, top left 
 // for middle center set "DEFAULT"
 
-#define BATTERY_X 440      // X position of battery indicator
-#define BATTERY_Y 20       // Y position of battery indicator
-#define BATTERY_WIDTH 80   // Width of battery indicator
-#define BATTERY_HEIGHT 16  // Height of battery indicator
+#define BATTERY_X 460      // X position of battery indicator
+#define BATTERY_Y 5      // Y position of battery indicator
+#define BATTERY_WIDTH 70   // Width of battery indicator
+#define BATTERY_HEIGHT 25  // Height of battery indicator
 
 class roboEyes_Sprite
 {
@@ -382,7 +382,7 @@ public:
                     //delay(5);
                     //lcd_PushColors((uint16_t*)_sprite->getPointer(), _sprite->width()*_sprite->height());
                 }else if (_sprite){
-                    drawBatteryIndicator();
+                    //drawBatteryIndicator();
                     lcd_PushColors(0, 0, _sprite->width(), _sprite->height(), (uint16_t*)_sprite->getPointer());
                 }
             } else {
@@ -719,7 +719,7 @@ public:
         // Set text properties
         _sprite->setTextFont(4);
         _sprite->setTextSize(1);           // Text size multiplier
-        _sprite->setTextColor(TFT_WHITE);  // Text color
+        _sprite->setTextColor(TFT_PURPLE);  // Text color
         //_sprite->setTextDatum(MC_DATUM);   // Middle-Center text alignment
 
         // Format the battery percentage text
@@ -728,12 +728,13 @@ public:
         Serial.println(batteryText);
         // Draw the text on the sprite at position x=470, y=30
         // You can adjust these coordinates to position the text where you want
-        _sprite->drawString(batteryText, 450, 40);
+        //_sprite->drawString(batteryText, 450, 40);
         //_sprite->setCursor(470, 80);
         //_sprite->printToSprite(batteryText);
         
         // Draw fill level
         _sprite->fillRect(BATTERY_X + 2, BATTERY_Y + 2, fillWidth, BATTERY_HEIGHT - 4, fillColor);
+        _sprite->drawString(batteryText, BATTERY_X + 4, BATTERY_Y + 2);
         //Serial.println("Drew battery");
     }
 
@@ -1035,12 +1036,12 @@ public:
                 if (happy) {
                     _sprite->fillRoundRect(eyeLx-1, (eyeLy+eyeLheightCurrent)-eyelidsHappyBottomOffset+1, 
                                         eyeLwidthCurrent+2, eyeLheightDefault, 
-                                        eyeLborderRadiusCurrent, _bgColor); // left eye
+                                        eyeLborderRadiusCurrent+13, _bgColor); // left eye
                                         
                     if (!cyclops) { 
                         _sprite->fillRoundRect(eyeRx-1, (eyeRy+eyeRheightCurrent)-eyelidsHappyBottomOffset+1, 
                                             eyeRwidthCurrent+2, eyeRheightDefault, 
-                                            eyeRborderRadiusCurrent, _bgColor); // right eye
+                                            eyeRborderRadiusCurrent+13, _bgColor); // right eye
                     }
                 //Serial.println("drew happy eye");
                 }
