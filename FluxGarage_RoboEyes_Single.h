@@ -30,6 +30,11 @@
 #define NW 8 // north-west, top left 
 // for middle center set "DEFAULT"
 
+#define BATTERY_X 440      // X position of battery indicator
+#define BATTERY_Y 20       // Y position of battery indicator
+#define BATTERY_WIDTH 80   // Width of battery indicator
+#define BATTERY_HEIGHT 16  // Height of battery indicator
+
 class roboEyes_Sprite
 {
 private:
@@ -106,6 +111,9 @@ public:
     bool cyclops = 0; // if true, draw only one eye
     bool eyeL_open = 0; // left eye opened or closed?
     bool eyeR_open = 0; // right eye opened or closed?
+
+    //For battery percentage
+    int batteryPercentage = 0;
 
 
     //*********************************************************************************************
@@ -374,6 +382,7 @@ public:
                     //delay(5);
                     //lcd_PushColors((uint16_t*)_sprite->getPointer(), _sprite->width()*_sprite->height());
                 }else if (_sprite){
+                    drawBatteryIndicator();
                     lcd_PushColors(0, 0, _sprite->width(), _sprite->height(), (uint16_t*)_sprite->getPointer());
                 }
             } else {
@@ -592,6 +601,10 @@ public:
         }
     }
 
+    void setBatteryPercentage (int bat) {
+        batteryPercentage = bat;
+    }
+
 
     //*********************************************************************************************
     //  GETTERS METHODS
@@ -681,6 +694,48 @@ public:
     //*********************************************************************************************
     //  DRAWING METHODS
     //*********************************************************************************************
+
+
+    void drawBatteryIndicator() {
+
+        // Draw battery outline
+        _sprite->drawRect(BATTERY_X, BATTERY_Y, BATTERY_WIDTH, BATTERY_HEIGHT, TFT_WHITE);
+        // Small battery terminal
+        _sprite->fillRect(BATTERY_X + BATTERY_WIDTH, BATTERY_Y + 4, 4, BATTERY_HEIGHT - 8, TFT_WHITE);
+        
+        // Battery fill level
+        int fillWidth = (BATTERY_WIDTH - 4) * batteryPercentage / 100;
+        
+        // Choose color based on level
+        uint16_t fillColor;
+        if (batteryPercentage < 15) {
+            fillColor = TFT_RED;
+        } else if (batteryPercentage < 30) {
+            fillColor = TFT_ORANGE;
+        } else {
+            fillColor = TFT_GREEN;
+        }
+        
+        // Set text properties
+        _sprite->setTextFont(4);
+        _sprite->setTextSize(1);           // Text size multiplier
+        _sprite->setTextColor(TFT_WHITE);  // Text color
+        //_sprite->setTextDatum(MC_DATUM);   // Middle-Center text alignment
+
+        // Format the battery percentage text
+        char batteryText[10];
+        sprintf(batteryText, "%d%%", batteryPercentage);
+        Serial.println(batteryText);
+        // Draw the text on the sprite at position x=470, y=30
+        // You can adjust these coordinates to position the text where you want
+        _sprite->drawString(batteryText, 450, 40);
+        //_sprite->setCursor(470, 80);
+        //_sprite->printToSprite(batteryText);
+        
+        // Draw fill level
+        _sprite->fillRect(BATTERY_X + 2, BATTERY_Y + 2, fillWidth, BATTERY_HEIGHT - 4, fillColor);
+        //Serial.println("Drew battery");
+    }
 
     void drawEyes() {
         // Ensure sprite is initialized

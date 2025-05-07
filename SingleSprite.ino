@@ -3,6 +3,7 @@
 #include "rm67162.h"
 #include "SDAnimation.h"
 #include "esp_heap_caps.h"
+#include "adc_bsp.h"
 
 TFT_eSPI tft = TFT_eSPI();
 roboEyes_Sprite eyes(&tft);
@@ -13,6 +14,11 @@ int currentMode = 0;
 unsigned long modeChangeTimer = 0;
 int modeChangeDuration = 8000;
 
+float batteryVoltage = 0;
+int batteryPercentage = 0;
+unsigned long batteryCheckTimer = 0;
+const int batteryCheckInterval = 5000; // Check every 5 seconds
+
 uint16_t* fireFramePointers[30];
 
 void setup() {
@@ -20,6 +26,7 @@ void setup() {
 
   //delay(5000);
   SD_card_Init();
+  adc_bsp_init();
   //rm67162_init();
   //lcd_setRotation(1);
   
@@ -104,6 +111,27 @@ void loop() {
   */
   eyes.update(); // This will draw and display the eyes
   //eyes.setPosition(9);
+  if (millis() - batteryCheckTimer >= batteryCheckInterval) {
+    int adcData = 0;
+    
+    // Get battery voltage
+    adc_get_value(&batteryVoltage, &adcData);
+    
+    // Convert to percentage (for standard 3.7V LiPo)
+    batteryPercentage = map(constrain(batteryVoltage * 100, 300, 420), 300, 420, 0, 100);
+
+    eyes.setBatteryPercentage(batteryPercentage);
+    
+    // Print for debugging
+    Serial.print("Battery voltage: ");
+    Serial.print(batteryVoltage);
+    Serial.print("V (");
+    Serial.print(batteryPercentage);
+    Serial.println("%)");
+    
+    batteryCheckTimer = millis();
+  }
+  /*
   if (millis() > modeChangeTimer + modeChangeDuration) {
     modeChangeTimer = millis();
     currentMode = (currentMode + 1) % 4;
@@ -135,7 +163,7 @@ void loop() {
         } else {
           Serial.println("Failed to load animation from SD card");
         }
-        */
+        
         break;
       case 2:
         eyes.setPosition(7);
@@ -151,6 +179,7 @@ void loop() {
         break;   
     }
   }
+  */
   /*
   if (millis() > modeChangeTimer + modeChangeDuration) {
     modeChangeTimer = millis();
