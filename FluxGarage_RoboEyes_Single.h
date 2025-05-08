@@ -103,6 +103,7 @@ public:
     int gifxpos = 0;
     int gifypos = 0;
     bool gifstatus = false;
+    bool batIndStatus = false;
 
     // For controlling mood types and expressions
     bool tired = 0;
@@ -346,10 +347,14 @@ public:
         if(millis()-fpsTimer >= frameInterval) {
             if (_spriteInitialized) {
                 //Serial.println("Update eyes called");
-                drawBatteryIndicator();
+                if(batIndStatus){
+                  drawBatteryIndicator();
+                }
                 if (background && _bgSprite && gifstatus){
                     //_bgSprite->fillSprite(TFT_CYAN);
-                    //_bgSprite->fillSprite(_bgColor);
+                    if(!batIndStatus){
+                      _bgSprite->fillSprite(_bgColor);
+                    }
 
                     if(millis() - gifTimer >= gifInterval) {
                         i = (i + 1) % frames;  // Update frame index
@@ -736,12 +741,6 @@ public:
         // Format the battery percentage text
         char batteryText[10];
         sprintf(batteryText, "%d%%", batteryPercentage);
-        //Serial.println(batteryText);
-        // Draw the text on the sprite at position x=470, y=30
-        // You can adjust these coordinates to position the text where you want
-        //_sprite->drawString(batteryText, 450, 40);
-        //_sprite->setCursor(470, 80);
-        //_sprite->printToSprite(batteryText);
         
         // Draw fill level
         _bgSprite->fillRect(BATTERY_X + 2, BATTERY_Y + 2, fillWidth, BATTERY_HEIGHT - 4, fillColor);
