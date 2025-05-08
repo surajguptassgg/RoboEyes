@@ -1,6 +1,5 @@
 #include <TFT_eSPI.h>
 #include "FluxGarage_RoboEyes_Single.h"
-#include "rm67162.h"
 #include "SDAnimation.h"
 #include "esp_heap_caps.h"
 #include "adc_bsp.h"
@@ -17,7 +16,7 @@ int modeChangeDuration = 8000;
 float batteryVoltage = 0;
 int batteryPercentage = 0;
 unsigned long batteryCheckTimer = 0;
-const int batteryCheckInterval = 60000; // Check every 60 seconds
+const int batteryCheckInterval = 5000; // Check every 5 seconds
 
 uint16_t* fireFramePointers[30];
 
@@ -114,13 +113,19 @@ void checkBattery() {
     eyes.setMood(DEFAULT);
     //Serial.printf("Battery checked, mood set to default");
   }else if (batteryPercentage >= 65 && batteryPercentage < 95){
+    if(eyes.getGifStatus()){
+      eyes.setBackground(false);
+    }
+    eyes.setIdleMode(true);
     eyes.setMood(HAPPY);
     //Serial.printf("Battery checked, mood set to happy");
   }else {
     eyes.setMood(ANGRY);
     eyes.setIdleMode(false);
     eyes.setPosition(9);
-    switchAnimation("/sd_card/sd_card/animations/fire", 0, 150, 15);
+    if (!eyes.getGifStatus()){
+      switchAnimation("/sd_card/sd_card/animations/fire", 0, 150, 15);
+    }
   }
 
   eyes.setBatteryPercentage(batteryPercentage);

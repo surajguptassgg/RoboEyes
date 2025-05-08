@@ -102,6 +102,7 @@ public:
     int gifHeight = 0;
     int gifxpos = 0;
     int gifypos = 0;
+    bool gifstatus = false;
 
     // For controlling mood types and expressions
     bool tired = 0;
@@ -345,10 +346,10 @@ public:
         if(millis()-fpsTimer >= frameInterval) {
             if (_spriteInitialized) {
                 //Serial.println("Update eyes called");
-
-                if (background && _bgSprite){
+                drawBatteryIndicator();
+                if (background && _bgSprite && gifstatus){
                     //_bgSprite->fillSprite(TFT_CYAN);
-                    _bgSprite->fillSprite(_bgColor);
+                    //_bgSprite->fillSprite(_bgColor);
 
                     if(millis() - gifTimer >= gifInterval) {
                         i = (i + 1) % frames;  // Update frame index
@@ -382,7 +383,6 @@ public:
                     //delay(5);
                     //lcd_PushColors((uint16_t*)_sprite->getPointer(), _sprite->width()*_sprite->height());
                 }else if (_sprite){
-                    //drawBatteryIndicator();
                     lcd_PushColors(0, 0, _sprite->width(), _sprite->height(), (uint16_t*)_sprite->getPointer());
                 }
             } else {
@@ -592,12 +592,14 @@ public:
           background = bg;
           frames = frameCount;
           backGif = (uint16_t**)gif;
+          gifstatus = true;
         }else {
           background = bg;
+          gifstatus = bg;
           Serial.println("BG reset: Clearing screen");
           _bgSprite->fillSprite(_bgColor);
           lcd_PushColors(0, 0, _bgSprite->width(), _bgSprite->height(), (uint16_t*)_bgSprite->getPointer());
-          lcd_PushColors(0, 0, _sprite->width(), _sprite->height(), (uint16_t*)_sprite->getPointer());
+          //lcd_PushColors(0, 0, _sprite->width(), _sprite->height(), (uint16_t*)_sprite->getPointer());
         }
     }
 
@@ -618,6 +620,10 @@ public:
     // Returns the max y position for left eye
     int getScreenConstraint_Y() {
         return screenHeight-eyeLheightDefault; // using default height here, because height will vary when blinking and in curious mode
+    }
+
+    bool getGifStatus() {
+      return gifstatus;
     }
 
 
@@ -698,10 +704,15 @@ public:
 
     void drawBatteryIndicator() {
 
+        background = true;
+        //gifstatus = false;
+
+        //Reset canvas for next frame
+        _bgSprite->fillSprite(_bgColor);
         // Draw battery outline
-        _sprite->drawRect(BATTERY_X, BATTERY_Y, BATTERY_WIDTH, BATTERY_HEIGHT, TFT_WHITE);
+        _bgSprite->drawRect(BATTERY_X, BATTERY_Y, BATTERY_WIDTH, BATTERY_HEIGHT, TFT_WHITE);
         // Small battery terminal
-        _sprite->fillRect(BATTERY_X + BATTERY_WIDTH, BATTERY_Y + 4, 4, BATTERY_HEIGHT - 8, TFT_WHITE);
+        _bgSprite->fillRect(BATTERY_X + BATTERY_WIDTH, BATTERY_Y + 4, 4, BATTERY_HEIGHT - 8, TFT_WHITE);
         
         // Battery fill level
         int fillWidth = (BATTERY_WIDTH - 4) * batteryPercentage / 100;
@@ -717,15 +728,15 @@ public:
         }
         
         // Set text properties
-        _sprite->setTextFont(4);
-        _sprite->setTextSize(1);           // Text size multiplier
-        _sprite->setTextColor(TFT_PURPLE);  // Text color
+        _bgSprite->setTextFont(4);
+        _bgSprite->setTextSize(1);           // Text size multiplier
+        _bgSprite->setTextColor(TFT_PURPLE);  // Text color
         //_sprite->setTextDatum(MC_DATUM);   // Middle-Center text alignment
 
         // Format the battery percentage text
         char batteryText[10];
         sprintf(batteryText, "%d%%", batteryPercentage);
-        Serial.println(batteryText);
+        //Serial.println(batteryText);
         // Draw the text on the sprite at position x=470, y=30
         // You can adjust these coordinates to position the text where you want
         //_sprite->drawString(batteryText, 450, 40);
@@ -733,8 +744,8 @@ public:
         //_sprite->printToSprite(batteryText);
         
         // Draw fill level
-        _sprite->fillRect(BATTERY_X + 2, BATTERY_Y + 2, fillWidth, BATTERY_HEIGHT - 4, fillColor);
-        _sprite->drawString(batteryText, BATTERY_X + 4, BATTERY_Y + 2);
+        _bgSprite->fillRect(BATTERY_X + 2, BATTERY_Y + 2, fillWidth, BATTERY_HEIGHT - 4, fillColor);
+        _bgSprite->drawString(batteryText, BATTERY_X + 4, BATTERY_Y + 2);
         //Serial.println("Drew battery");
     }
 
