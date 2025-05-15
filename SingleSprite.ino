@@ -3,20 +3,26 @@
 #include "SDAnimation.h"
 #include "esp_heap_caps.h"
 #include "adc_bsp.h"
+#include "FT3168.h"
 
 TFT_eSPI tft = TFT_eSPI();
 roboEyes_Sprite eyes(&tft);
 
 SDAnimation fireAnimation;
+FT3168 touch(I2C_SDA, I2C_SCL, TP_RST, TP_INT);
 
 int currentMode = 0;
 unsigned long modeChangeTimer = 0;
 int modeChangeDuration = 8000;
 
+unsigned long touchTimeoutTimer = 0;
+int touchTimeoutDuration = 2000;
+
 float batteryVoltage = 0;
 int batteryPercentage = 0;
 unsigned long batteryCheckTimer = 0;
 const int batteryCheckInterval = 5000; // Check every 5 seconds
+bool batteryStatus = false;
 
 uint16_t* fireFramePointers[30];
 
@@ -26,6 +32,7 @@ void setup() {
   //delay(5000);
   SD_card_Init();
   adc_bsp_init();
+  touch.begin();
   //rm67162_init();
   //lcd_setRotation(1);
   
@@ -117,14 +124,16 @@ void checkBattery() {
       eyes.setBackground(false);
     }
     eyes.setIdleMode(true);
+    eyes.setVFlicker(false);
     eyes.setMood(HAPPY);
     //Serial.printf("Battery checked, mood set to happy");
   }else {
-    eyes.setMood(ANGRY);
+    eyes.setMood(HAPPY);
     eyes.setIdleMode(false);
+    eyes.setVFlicker(true);
     eyes.setPosition(9);
     if (!eyes.getGifStatus()){
-      switchAnimation("/sd_card/sd_card/animations/fire", 0, 150, 15);
+      switchAnimation("/sd_card/sd_card/animations/beach", 0, 0, 15);
     }
   }
 
@@ -142,6 +151,18 @@ void checkBattery() {
 
 void loop() {
 
+  bool touched;
+  uint8_t gesture;
+  uint16_t x, y;
+
+  touched = touch.getTouch(&x, &y, &gesture);
+
+  if(touched && (millis() - touchTimeoutTimer >= touchTimeoutDuration)){
+    batteryStatus = !batteryStatus;
+    eyes.setBattery(!batteryStatus);
+    Serial.println(batteryStatus);
+    touchTimeoutTimer = millis();
+  }
   /*
   static unsigned long lastFrameTime = 0;
   if (millis() - lastFrameTime > 42) { // 42ms = ~24fps
