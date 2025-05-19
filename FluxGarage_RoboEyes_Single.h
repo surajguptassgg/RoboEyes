@@ -30,6 +30,11 @@
 #define NW 8 // north-west, top left 
 // for middle center set "DEFAULT"
 
+#define BATTERY_X 460      // X position of battery indicator
+#define BATTERY_Y 5      // Y position of battery indicator
+#define BATTERY_WIDTH 70   // Width of battery indicator
+#define BATTERY_HEIGHT 25  // Height of battery indicator
+
 class roboEyes_Sprite
 {
 private:
@@ -97,6 +102,8 @@ public:
     int gifHeight = 0;
     int gifxpos = 0;
     int gifypos = 0;
+    bool gifstatus = false;
+    bool batIndStatus = false;
 
     // For controlling mood types and expressions
     bool tired = 0;
@@ -106,6 +113,9 @@ public:
     bool cyclops = 0; // if true, draw only one eye
     bool eyeL_open = 0; // left eye opened or closed?
     bool eyeR_open = 0; // right eye opened or closed?
+
+    //For battery percentage
+    int batteryPercentage = 0;
 
 
     //*********************************************************************************************
@@ -183,7 +193,7 @@ public:
     // Animation - vertical flicker/shiver
     bool vFlicker = 0;
     bool vFlickerAlternate = 0;
-    byte vFlickerAmplitude = 10;
+    byte vFlickerAmplitude = 2;
 
     // Animation - auto blinking
     bool autoblinker = 0; // activate auto blink animation
@@ -337,10 +347,12 @@ public:
         if(millis()-fpsTimer >= frameInterval) {
             if (_spriteInitialized) {
                 //Serial.println("Update eyes called");
-
-                if (background && _bgSprite){
+                if(gifstatus){
+                  background = true;
+                }
+                if (background && _bgSprite && gifstatus){
                     //_bgSprite->fillSprite(TFT_CYAN);
-                    _bgSprite->fillSprite(_bgColor);
+                      _bgSprite->fillSprite(_bgColor);
 
                     if(millis() - gifTimer >= gifInterval) {
                         i = (i + 1) % frames;  // Update frame index
@@ -351,6 +363,14 @@ public:
                     //lcd_PushColors(0, 0, _bgSprite->width(), _bgSprite->height(), (uint16_t*)_bgSprite->getPointer());
                     //Serial.println("Background set");
                 }
+
+                if(batIndStatus){
+                  if(!gifstatus){
+                    _bgSprite->fillSprite(_bgColor);
+                  }
+                  drawBatteryIndicator();
+                }
+
                 drawEyes();
                 
                 //Push the sprite to the display
@@ -583,13 +603,24 @@ public:
           background = bg;
           frames = frameCount;
           backGif = (uint16_t**)gif;
+          gifstatus = true;
         }else {
           background = bg;
+          gifstatus = bg;
           Serial.println("BG reset: Clearing screen");
           _bgSprite->fillSprite(_bgColor);
           lcd_PushColors(0, 0, _bgSprite->width(), _bgSprite->height(), (uint16_t*)_bgSprite->getPointer());
-          lcd_PushColors(0, 0, _sprite->width(), _sprite->height(), (uint16_t*)_sprite->getPointer());
+          //lcd_PushColors(0, 0, _sprite->width(), _sprite->height(), (uint16_t*)_sprite->getPointer());
         }
+    }
+
+    void setBatteryPercentage (int bat) {
+        batteryPercentage = bat;
+    }
+
+    void setBattery(bool battery){
+      batIndStatus = battery;
+      background = false;
     }
 
 
@@ -605,6 +636,10 @@ public:
     // Returns the max y position for left eye
     int getScreenConstraint_Y() {
         return screenHeight-eyeLheightDefault; // using default height here, because height will vary when blinking and in curious mode
+    }
+
+    bool getGifStatus() {
+      return gifstatus;
     }
 
 
@@ -681,6 +716,45 @@ public:
     //*********************************************************************************************
     //  DRAWING METHODS
     //*********************************************************************************************
+
+
+    void drawBatteryIndicator() {
+
+        background = true;
+        //gifstatus = false;
+        // Draw battery outline
+        _bgSprite->drawRect(BATTERY_X, BATTERY_Y, BATTERY_WIDTH, BATTERY_HEIGHT, TFT_WHITE);
+        // Small battery terminal
+        _bgSprite->fillRect(BATTERY_X + BATTERY_WIDTH, BATTERY_Y + 4, 4, BATTERY_HEIGHT - 8, TFT_WHITE);
+        
+        // Battery fill level
+        int fillWidth = (BATTERY_WIDTH - 4) * batteryPercentage / 100;
+        
+        // Choose color based on level
+        uint16_t fillColor;
+        if (batteryPercentage < 15) {
+            fillColor = TFT_RED;
+        } else if (batteryPercentage < 30) {
+            fillColor = TFT_ORANGE;
+        } else {
+            fillColor = TFT_GREEN;
+        }
+        
+        // Set text properties
+        _bgSprite->setTextFont(4);
+        _bgSprite->setTextSize(1);           // Text size multiplier
+        _bgSprite->setTextColor(TFT_PURPLE);  // Text color
+        //_sprite->setTextDatum(MC_DATUM);   // Middle-Center text alignment
+
+        // Format the battery percentage text
+        char batteryText[10];
+        sprintf(batteryText, "%d%%", batteryPercentage);
+        
+        // Draw fill level
+        _bgSprite->fillRect(BATTERY_X + 2, BATTERY_Y + 2, fillWidth, BATTERY_HEIGHT - 4, fillColor);
+        _bgSprite->drawString(batteryText, BATTERY_X + 4, BATTERY_Y + 2);
+        //Serial.println("Drew battery");
+    }
 
     void drawEyes() {
         // Ensure sprite is initialized
@@ -913,12 +987,12 @@ public:
                 if (happy) {
                     _bgSprite->fillRoundRect(eyeLx-1, (eyeLy+eyeLheightCurrent)-eyelidsHappyBottomOffset+1, 
                                         eyeLwidthCurrent+2, eyeLheightDefault, 
-                                        eyeLborderRadiusCurrent, _bgColor); // left eye
+                                        eyeLborderRadiusCurrent+13, _bgColor); // left eye
                                         
                     if (!cyclops) { 
                         _bgSprite->fillRoundRect(eyeRx-1, (eyeRy+eyeRheightCurrent)-eyelidsHappyBottomOffset+1, 
                                             eyeRwidthCurrent+2, eyeRheightDefault, 
-                                            eyeRborderRadiusCurrent, _bgColor); // right eye
+                                            eyeRborderRadiusCurrent+13, _bgColor); // right eye
                     }
                 //Serial.println("drew happy eye");
                 }
@@ -980,12 +1054,12 @@ public:
                 if (happy) {
                     _sprite->fillRoundRect(eyeLx-1, (eyeLy+eyeLheightCurrent)-eyelidsHappyBottomOffset+1, 
                                         eyeLwidthCurrent+2, eyeLheightDefault, 
-                                        eyeLborderRadiusCurrent, _bgColor); // left eye
+                                        eyeLborderRadiusCurrent+13, _bgColor); // left eye
                                         
                     if (!cyclops) { 
                         _sprite->fillRoundRect(eyeRx-1, (eyeRy+eyeRheightCurrent)-eyelidsHappyBottomOffset+1, 
                                             eyeRwidthCurrent+2, eyeRheightDefault, 
-                                            eyeRborderRadiusCurrent, _bgColor); // right eye
+                                            eyeRborderRadiusCurrent+13, _bgColor); // right eye
                     }
                 //Serial.println("drew happy eye");
                 }
