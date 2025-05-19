@@ -112,6 +112,7 @@ void checkBattery() {
   
   // Convert to percentage (for standard 3.7V LiPo)
   batteryPercentage = map(constrain(batteryVoltage * 100, 300, 420), 300, 420, 0, 100);
+  //batteryPercentage = 15;
   //Serial.print(batteryPercentage);
 
   int currentBatteryZone;
@@ -131,12 +132,14 @@ void checkBattery() {
     switch(currentBatteryZone) {
       case 0:  // Critical (<10%)
         eyes.setMood(TIRED);
+        eyes.setIdleMode(false);
         eyes.setPosition(5);
         switchAnimation("/sd_card/sd_card/animations/charge", 420, 20, 2);
         break;
         
       case 1:  // Normal (10-64%)
         eyes.setMood(DEFAULT);
+        eyes.setIdleMode(true);
         if (eyes.getGifStatus()) {
           eyes.setBackground(false);
         }
@@ -209,7 +212,7 @@ void loop() {
   }
   */
   eyes.update(); // This will draw and display the eyes
-  //eyes.setPosition(9);
+  //eyes.setPosition(5);
   if (millis() - batteryCheckTimer >= batteryCheckInterval) {   
     checkBattery();
   }
