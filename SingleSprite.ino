@@ -23,8 +23,10 @@ int batteryPercentage = 0;
 unsigned long batteryCheckTimer = 0;
 const int batteryCheckInterval = 5000; // Check every 5 seconds
 bool batteryStatus = false;
+int previousBatteryZone = -1;
 
 uint16_t* fireFramePointers[30];
+
 
 void setup() {
   Serial.begin(115200);
@@ -46,7 +48,7 @@ void setup() {
   //eyes.setMood(DEFAULT);
   eyes.setColors(TFT_BLACK, TFT_WHITE);
 
-  //eyes.setPosition(9);
+  eyes.setPosition(9);
   eyes.setCuriosity(false);
   eyes.setCyclops(false);
   eyes.setHFlicker(false);
@@ -110,31 +112,60 @@ void checkBattery() {
   
   // Convert to percentage (for standard 3.7V LiPo)
   batteryPercentage = map(constrain(batteryVoltage * 100, 300, 420), 300, 420, 0, 100);
-  Serial.print(batteryPercentage);
-  if (batteryPercentage < 10){
-    eyes.setMood(TIRED);
-    eyes.setPosition(5);
-    switchAnimation("/sd_card/sd_card/animations/charge", 420, 20, 2);
-    //Serial.printf("Battery checked, mood set to tired");
-  }else if (batteryPercentage >= 10 && batteryPercentage < 65){
-    eyes.setMood(DEFAULT);
-    //Serial.printf("Battery checked, mood set to default");
-  }else if (batteryPercentage >= 65 && batteryPercentage < 95){
-    if(eyes.getGifStatus()){
-      eyes.setBackground(false);
+  //Serial.print(batteryPercentage);
+
+  int currentBatteryZone;
+  if (batteryPercentage < 10) {
+    currentBatteryZone = 0;  // Critical
+  } else if (batteryPercentage < 65) {
+    currentBatteryZone = 1;  // Normal
+  } else if (batteryPercentage < 95) {
+    currentBatteryZone = 2;  // Good
+  } else {
+    currentBatteryZone = 3;  // Excellent
+  }
+
+  if (currentBatteryZone != previousBatteryZone) {
+    
+    // Apply zone-specific settings
+    switch(currentBatteryZone) {
+      case 0:  // Critical (<10%)
+        eyes.setMood(TIRED);
+        eyes.setPosition(5);
+        switchAnimation("/sd_card/sd_card/animations/charge", 420, 20, 2);
+        break;
+        
+      case 1:  // Normal (10-64%)
+        eyes.setMood(DEFAULT);
+        if (eyes.getGifStatus()) {
+          eyes.setBackground(false);
+        }
+        break;
+        
+      case 2:  // Good (65-94%)
+        if (eyes.getGifStatus()) {
+          eyes.setBackground(false);
+        }
+        //switchAnimation("/sd_card/sd_card/animations/battery", 0, 150, 20);
+        eyes.setIdleMode(true);
+        eyes.setVFlicker(false);
+        eyes.setMood(HAPPY);
+        break;
+        
+      case 3:  // Excellent (95%+)
+        eyes.setMood(ANGRY);
+        eyes.setIdleMode(false);
+        eyes.setVFlicker(true);
+        eyes.setPosition(9);
+        switchAnimation("/sd_card/sd_card/animations/fire", 0, 150, 20);
+        //if (!eyes.getGifStatus()) {
+        //  switchAnimation("/sd_card/sd_card/animations/fire", 0, 150, 20);
+        //}
+        break;
     }
-    eyes.setIdleMode(true);
-    eyes.setVFlicker(false);
-    eyes.setMood(HAPPY);
-    //Serial.printf("Battery checked, mood set to happy");
-  }else {
-    eyes.setMood(HAPPY);
-    eyes.setIdleMode(false);
-    eyes.setVFlicker(true);
-    eyes.setPosition(9);
-    if (!eyes.getGifStatus()){
-      switchAnimation("/sd_card/sd_card/animations/beach", 0, 0, 15);
-    }
+    
+    // Update the previous zone
+    previousBatteryZone = currentBatteryZone;
   }
 
   eyes.setBatteryPercentage(batteryPercentage);
