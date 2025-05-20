@@ -9,3 +9,4 @@ The driver used in this project - rm67162
 Added Features - 
 1. Functionality to add gifs in the background
 2. TF card support to store gifs
+3. Battery percent indicator on touch
