@@ -191,9 +191,11 @@ void loop() {
 
   touched = touch.getTouch(&x, &y, &gesture);
 
+  //Serial.println(gesture);
+
   if(touched && gesture == SingleTap && (millis() - touchTimeoutTimer >= touchTimeoutDuration)){
     batteryStatus = !batteryStatus;
-    eyes.setBattery(!batteryStatus);
+    eyes.setBattery(batteryStatus);
     Serial.println(batteryStatus);
     touchTimeoutTimer = millis();
   }
