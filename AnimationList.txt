@@ -3,3 +3,5 @@ beach - 14 frames, 536x240
 charge - 2 frames, 100x54
 fire - 30 frames, 536x187
 trip - 12 frames, 536x240
+maze - 30 frames, 536x240
+circles - 30 frames, 536x240
