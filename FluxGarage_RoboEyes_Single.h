@@ -756,6 +756,176 @@ public:
         //Serial.println("Drew battery");
     }
 
+    class ShapeBoolean {
+    public:
+        // Test if point is inside a rounded rectangle
+        static bool isInRoundedRect(int px, int py, int x, int y, int width, int height, int radius) {
+            // Check if point is in the main rectangle area (excluding corners)
+            if (px >= x + radius && px <= x + width - radius && py >= y && py <= y + height) return true;
+            if (px >= x && px <= x + width && py >= y + radius && py <= y + height - radius) return true;
+            
+            // Check corner circles
+            int corners[4][2] = {
+                {x + radius, y + radius},           // Top-left
+                {x + width - radius, y + radius},   // Top-right  
+                {x + radius, y + height - radius}, // Bottom-left
+                {x + width - radius, y + height - radius} // Bottom-right
+            };
+            
+            for (int i = 0; i < 4; i++) {
+                int dx = px - corners[i][0];
+                int dy = py - corners[i][1];
+                if (dx*dx + dy*dy <= radius*radius) {
+                    // Check which quadrant this corner should be active in
+                    bool validCorner = false;
+                    switch(i) {
+                        case 0: validCorner = (px <= corners[i][0] && py <= corners[i][1]); break; // Top-left
+                        case 1: validCorner = (px >= corners[i][0] && py <= corners[i][1]); break; // Top-right
+                        case 2: validCorner = (px <= corners[i][0] && py >= corners[i][1]); break; // Bottom-left
+                        case 3: validCorner = (px >= corners[i][0] && py >= corners[i][1]); break; // Bottom-right
+                    }
+                    if (validCorner) return true;
+                }
+            }
+            return false;
+        }
+        
+        // Test if point is inside a triangle
+        static bool isInTriangle(int px, int py, int x1, int y1, int x2, int y2, int x3, int y3) {
+            int denominator = ((y2 - y3)*(x1 - x3) + (x3 - x2)*(y1 - y3));
+            if (denominator == 0) return false;
+            
+            float a = ((y2 - y3)*(px - x3) + (x3 - x2)*(py - y3)) / (float)denominator;
+            float b = ((y3 - y1)*(px - x3) + (x1 - x3)*(py - y3)) / (float)denominator;
+            float c = 1 - a - b;
+            
+            return (a >= 0 && a <= 1 && b >= 0 && b <= 1 && c >= 0 && c <= 1);
+        }
+    };
+
+    void drawEyeWithExpression(TFT_eSprite* sprite, int x, int y, int width, int height, 
+                          int borderRadius, uint16_t color, int expression, bool isLeftEye = true) {
+    
+        switch(expression) {
+            case 0: // Normal eye
+                sprite->fillRoundRect(x, y, width, height, borderRadius, color);
+                break;
+                
+            case 1: // Tired eye - rectangle minus triangle (boolean difference)
+                {
+                    // Get bounding box for efficiency
+                    int minX = x;
+                    int maxX = x + width;
+                    int minY = y - 1;
+                    int maxY = y + max(height, (int)eyelidsTiredHeight);
+                    
+                    // Draw the eye pixel by pixel, skipping triangle area
+                    for (int py = minY; py <= maxY; py++) {
+                        for (int px = minX; px <= maxX; px++) {
+                            // Check if pixel is in rounded rectangle
+                            bool inRect = ShapeBoolean::isInRoundedRect(px, py, x, y, width, height, borderRadius);
+                            
+                            if (inRect) {
+                                // For tired eyes, create droopy eyelids
+                                bool inTriangle;
+                                if (isLeftEye) {
+                                    // Left eye: droop from left (outer) side
+                                    inTriangle = ShapeBoolean::isInTriangle(px, py, 
+                                        x, y-1,                           // Top-left corner
+                                        x+width, y-1,                     // Top-right corner  
+                                        x, y+eyelidsTiredHeight-1);       // Bottom-left (left droop)
+                                } else {
+                                    // Right eye: droop from right (outer) side  
+                                    inTriangle = ShapeBoolean::isInTriangle(px, py, 
+                                        x, y-1,                           // Top-left corner
+                                        x+width, y-1,                     // Top-right corner
+                                        x+width, y+eyelidsTiredHeight-1); // Bottom-right (right droop)
+                                }
+                                
+                                // Draw pixel only if it's in rectangle but NOT in triangle
+                                if (!inTriangle) {
+                                    sprite->drawPixel(px, py, color);
+                                }
+                            }
+                        }
+                    }
+                }
+                break;
+                
+            case 2: // Angry eye - rectangle minus different triangle
+                {
+                    int minX = x;
+                    int maxX = x + width;
+                    int minY = y - 1;
+                    int maxY = y + max(height, (int)eyelidsAngryHeight);
+                    
+                    for (int py = minY; py <= maxY; py++) {
+                        for (int px = minX; px <= maxX; px++) {
+                            bool inRect = ShapeBoolean::isInRoundedRect(px, py, x, y, width, height, borderRadius);
+                            
+                            if (inRect) {
+                                // For angry eyes, create angled eyebrows that slope toward center
+                                bool inTriangle;
+                                if (isLeftEye) {
+                                    // Left eye: angry brow slopes down from left (outer) to right (inner)
+                                    inTriangle = ShapeBoolean::isInTriangle(px, py,
+                                        x, y-1,                            // Top-left corner
+                                        x+width, y-1,                      // Top-right corner
+                                        x+width, y+eyelidsAngryHeight-1);  // Bottom-right (creates / slope)
+                                } else {
+                                    // Right eye: angry brow slopes down from right (outer) to left (inner)
+                                    inTriangle = ShapeBoolean::isInTriangle(px, py,
+                                        x, y-1,                            // Top-left corner
+                                        x+width, y-1,                      // Top-right corner
+                                        x, y+eyelidsAngryHeight-1);        // Bottom-left (creates \ slope)
+                                }
+                                
+                                if (!inTriangle) {
+                                    sprite->drawPixel(px, py, color);
+                                }
+                            }
+                        }
+                    }
+                }
+                break;
+                
+            case 3: // Happy eye - rectangle minus bottom rounded area
+                {
+                    int minX = x - 5;
+                    int maxX = x + width + 5;
+                    int minY = y;
+                    int maxY = y + height + 20;
+                    
+                    for (int py = minY; py <= maxY; py++) {
+                        for (int px = minX; px <= maxX; px++) {
+                            bool inRect = ShapeBoolean::isInRoundedRect(px, py, x, y, width, height, borderRadius);
+                            
+                            if (inRect) {
+                                // Check if pixel is in the bottom "smile" area to subtract
+                                int centerX = x + width/2;
+                                int centerY = y + height - eyelidsHappyBottomOffset;
+                                int dx = px - centerX;
+                                int dy = py - centerY;
+                                
+                                // Elliptical cutout for smile - only cut out if in bottom area
+                                bool inSmileCutout = false;
+                                if (py >= centerY) {
+                                    float ellipseTest = (dx*dx)/(float)((width/2 + 5)*(width/2 + 5)) + 
+                                                    (dy*dy)/(float)(20*20);
+                                    inSmileCutout = (ellipseTest <= 1.0);
+                                }
+                                
+                                if (!inSmileCutout) {
+                                    sprite->drawPixel(px, py, color);
+                                }
+                            }
+                        }
+                    }
+                }
+                break;
+        }
+    }
+
     void drawEyes() {
         // Ensure sprite is initialized
         if (!_spriteInitialized || !_sprite) {
@@ -935,139 +1105,159 @@ public:
         eyelidsAngryHeight = (eyelidsAngryHeight + eyelidsAngryHeightNext)/2;
         eyelidsHappyBottomOffset = (eyelidsHappyBottomOffset + eyelidsHappyBottomOffsetNext)/2;
         //Serial.println("all calculations done, prepping for actual drawings");
-        if (background && _bgSprite){
-            try {
-                //// ACTUAL DRAWINGS WITH SPRITE ////
+        // if (background && _bgSprite){
+        //     try {
+        //         //// ACTUAL DRAWINGS WITH SPRITE ////
                 
-                // Clear sprite for next frame
-                //_sprite->fillSprite(_bgColor);
+        //         // Clear sprite for next frame
+        //         //_sprite->fillSprite(_bgColor);
                 
-                // Draw basic eye rectangles
-                _bgSprite->fillRoundRect(eyeLx, eyeLy, eyeLwidthCurrent, eyeLheightCurrent, 
-                                    eyeLborderRadiusCurrent, _mainColor); // left eye
+        //         // Draw basic eye rectangles
+        //         _bgSprite->fillRoundRect(eyeLx, eyeLy, eyeLwidthCurrent, eyeLheightCurrent, 
+        //                             eyeLborderRadiusCurrent, _mainColor); // left eye
                 
-                if (!cyclops) {
-                    _bgSprite->fillRoundRect(eyeRx, eyeRy, eyeRwidthCurrent, eyeRheightCurrent, 
-                                        eyeRborderRadiusCurrent, _mainColor); // right eye
-                }
-                //Serial.println("drew basic eye");
-                // Draw tired top eyelids
-                if (tired) {
-                    if (!cyclops) {
-                        _bgSprite->fillTriangle(eyeLx, eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
-                                            eyeLx, eyeLy+eyelidsTiredHeight-1, _bgColor); // left eye 
-                        _bgSprite->fillTriangle(eyeRx, eyeRy-1, eyeRx+eyeRwidthCurrent, eyeRy-1, 
-                                            eyeRx+eyeRwidthCurrent, eyeRy+eyelidsTiredHeight-1, _bgColor); // right eye
-                    } else {
-                        // Cyclops tired eyelids
-                        _bgSprite->fillTriangle(eyeLx, eyeLy-1, eyeLx+(eyeLwidthCurrent/2), eyeLy-1, 
-                                            eyeLx, eyeLy+eyelidsTiredHeight-1, _bgColor); // left eyelid half
-                        _bgSprite->fillTriangle(eyeLx+(eyeLwidthCurrent/2), eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
-                                            eyeLx+eyeLwidthCurrent, eyeLy+eyelidsTiredHeight-1, _bgColor); // right eyelid half
-                    }
-                //Serial.println("drew tired eye");
-                }
-                // Draw angry top eyelids
-                if (angry) {
-                    if (!cyclops) { 
-                        _bgSprite->fillTriangle(eyeLx, eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
-                                            eyeLx+eyeLwidthCurrent, eyeLy+eyelidsAngryHeight-1, _bgColor); // left eye
-                        _bgSprite->fillTriangle(eyeRx, eyeRy-1, eyeRx+eyeRwidthCurrent, eyeRy-1, 
-                                            eyeRx, eyeRy+eyelidsAngryHeight-1, _bgColor); // right eye
-                    } else {
-                        // Cyclops angry eyelids
-                        _bgSprite->fillTriangle(eyeLx, eyeLy-1, eyeLx+(eyeLwidthCurrent/2), eyeLy-1, 
-                                            eyeLx+(eyeLwidthCurrent/2), eyeLy+eyelidsAngryHeight-1, _bgColor); // left eyelid half
-                        _bgSprite->fillTriangle(eyeLx+(eyeLwidthCurrent/2), eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
-                                            eyeLx+(eyeLwidthCurrent/2), eyeLy+eyelidsAngryHeight-1, _bgColor); // right eyelid half
-                    }
-                //Serial.println("drew angry eye");
-                }
-                // Draw happy bottom eyelids
-                if (happy) {
-                    _bgSprite->fillRoundRect(eyeLx-1, (eyeLy+eyeLheightCurrent)-eyelidsHappyBottomOffset+1, 
-                                        eyeLwidthCurrent+2, eyeLheightDefault, 
-                                        eyeLborderRadiusCurrent+13, _bgColor); // left eye
+        //         if (!cyclops) {
+        //             _bgSprite->fillRoundRect(eyeRx, eyeRy, eyeRwidthCurrent, eyeRheightCurrent, 
+        //                                 eyeRborderRadiusCurrent, _mainColor); // right eye
+        //         }
+        //         //Serial.println("drew basic eye");
+        //         // Draw tired top eyelids
+        //         if (tired) {
+        //             if (!cyclops) {
+        //                 _bgSprite->fillTriangle(eyeLx, eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
+        //                                     eyeLx, eyeLy+eyelidsTiredHeight-1, _bgColor); // left eye 
+        //                 _bgSprite->fillTriangle(eyeRx, eyeRy-1, eyeRx+eyeRwidthCurrent, eyeRy-1, 
+        //                                     eyeRx+eyeRwidthCurrent, eyeRy+eyelidsTiredHeight-1, _bgColor); // right eye
+        //             } else {
+        //                 // Cyclops tired eyelids
+        //                 _bgSprite->fillTriangle(eyeLx, eyeLy-1, eyeLx+(eyeLwidthCurrent/2), eyeLy-1, 
+        //                                     eyeLx, eyeLy+eyelidsTiredHeight-1, _bgColor); // left eyelid half
+        //                 _bgSprite->fillTriangle(eyeLx+(eyeLwidthCurrent/2), eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
+        //                                     eyeLx+eyeLwidthCurrent, eyeLy+eyelidsTiredHeight-1, _bgColor); // right eyelid half
+        //             }
+        //         //Serial.println("drew tired eye");
+        //         }
+        //         // Draw angry top eyelids
+        //         if (angry) {
+        //             if (!cyclops) { 
+        //                 _bgSprite->fillTriangle(eyeLx, eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
+        //                                     eyeLx+eyeLwidthCurrent, eyeLy+eyelidsAngryHeight-1, _bgColor); // left eye
+        //                 _bgSprite->fillTriangle(eyeRx, eyeRy-1, eyeRx+eyeRwidthCurrent, eyeRy-1, 
+        //                                     eyeRx, eyeRy+eyelidsAngryHeight-1, _bgColor); // right eye
+        //             } else {
+        //                 // Cyclops angry eyelids
+        //                 _bgSprite->fillTriangle(eyeLx, eyeLy-1, eyeLx+(eyeLwidthCurrent/2), eyeLy-1, 
+        //                                     eyeLx+(eyeLwidthCurrent/2), eyeLy+eyelidsAngryHeight-1, _bgColor); // left eyelid half
+        //                 _bgSprite->fillTriangle(eyeLx+(eyeLwidthCurrent/2), eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
+        //                                     eyeLx+(eyeLwidthCurrent/2), eyeLy+eyelidsAngryHeight-1, _bgColor); // right eyelid half
+        //             }
+        //         //Serial.println("drew angry eye");
+        //         }
+        //         // Draw happy bottom eyelids
+        //         if (happy) {
+        //             _bgSprite->fillRoundRect(eyeLx-1, (eyeLy+eyeLheightCurrent)-eyelidsHappyBottomOffset+1, 
+        //                                 eyeLwidthCurrent+2, eyeLheightDefault, 
+        //                                 eyeLborderRadiusCurrent+13, _bgColor); // left eye
                                         
-                    if (!cyclops) { 
-                        _bgSprite->fillRoundRect(eyeRx-1, (eyeRy+eyeRheightCurrent)-eyelidsHappyBottomOffset+1, 
-                                            eyeRwidthCurrent+2, eyeRheightDefault, 
-                                            eyeRborderRadiusCurrent+13, _bgColor); // right eye
-                    }
-                //Serial.println("drew happy eye");
-                }
-            } catch (...) {
-            Serial.println("ERROR: Exception caught during sprite rendering");
-            // Draw an error indicator
-            //_tft->fillTriangle(10, 10, 30, 10, 20, 30, TFT_RED);
-            }
+        //             if (!cyclops) { 
+        //                 _bgSprite->fillRoundRect(eyeRx-1, (eyeRy+eyeRheightCurrent)-eyelidsHappyBottomOffset+1, 
+        //                                     eyeRwidthCurrent+2, eyeRheightDefault, 
+        //                                     eyeRborderRadiusCurrent+13, _bgColor); // right eye
+        //             }
+        //         //Serial.println("drew happy eye");
+        //         }
+        //     } catch (...) {
+        //     Serial.println("ERROR: Exception caught during sprite rendering");
+        //     // Draw an error indicator
+        //     //_tft->fillTriangle(10, 10, 30, 10, 20, 30, TFT_RED);
+        //     }
+        // }
+        // else{
+        //     try {
+        //         //// ACTUAL DRAWINGS WITH SPRITE ////
+                
+        //         // Clear sprite for next frame
+        //         _sprite->fillSprite(_bgColor);
+                
+        //         // Draw basic eye rectangles
+        //         _sprite->fillRoundRect(eyeLx, eyeLy, eyeLwidthCurrent, eyeLheightCurrent, 
+        //                             eyeLborderRadiusCurrent, _mainColor); // left eye
+                
+        //         if (!cyclops) {
+        //             _sprite->fillRoundRect(eyeRx, eyeRy, eyeRwidthCurrent, eyeRheightCurrent, 
+        //                                 eyeRborderRadiusCurrent, _mainColor); // right eye
+        //         }
+        //         //Serial.println("drew basic eye");
+        //         // Draw tired top eyelids
+        //         if (tired) {
+        //             if (!cyclops) {
+        //                 _sprite->fillTriangle(eyeLx, eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
+        //                                     eyeLx, eyeLy+eyelidsTiredHeight-1, _bgColor); // left eye 
+        //                 _sprite->fillTriangle(eyeRx, eyeRy-1, eyeRx+eyeRwidthCurrent, eyeRy-1, 
+        //                                     eyeRx+eyeRwidthCurrent, eyeRy+eyelidsTiredHeight-1, _bgColor); // right eye
+        //             } else {
+        //                 // Cyclops tired eyelids
+        //                 _sprite->fillTriangle(eyeLx, eyeLy-1, eyeLx+(eyeLwidthCurrent/2), eyeLy-1, 
+        //                                     eyeLx, eyeLy+eyelidsTiredHeight-1, _bgColor); // left eyelid half
+        //                 _sprite->fillTriangle(eyeLx+(eyeLwidthCurrent/2), eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
+        //                                     eyeLx+eyeLwidthCurrent, eyeLy+eyelidsTiredHeight-1, _bgColor); // right eyelid half
+        //             }
+        //         //Serial.println("drew tired eye");
+        //         }
+        //         // Draw angry top eyelids
+        //         if (angry) {
+        //             if (!cyclops) { 
+        //                 _sprite->fillTriangle(eyeLx, eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
+        //                                     eyeLx+eyeLwidthCurrent, eyeLy+eyelidsAngryHeight-1, _bgColor); // left eye
+        //                 _sprite->fillTriangle(eyeRx, eyeRy-1, eyeRx+eyeRwidthCurrent, eyeRy-1, 
+        //                                     eyeRx, eyeRy+eyelidsAngryHeight-1, _bgColor); // right eye
+        //             } else {
+        //                 // Cyclops angry eyelids
+        //                 _sprite->fillTriangle(eyeLx, eyeLy-1, eyeLx+(eyeLwidthCurrent/2), eyeLy-1, 
+        //                                     eyeLx+(eyeLwidthCurrent/2), eyeLy+eyelidsAngryHeight-1, _bgColor); // left eyelid half
+        //                 _sprite->fillTriangle(eyeLx+(eyeLwidthCurrent/2), eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
+        //                                     eyeLx+(eyeLwidthCurrent/2), eyeLy+eyelidsAngryHeight-1, _bgColor); // right eyelid half
+        //             }
+        //         //Serial.println("drew angry eye");
+        //         }
+        //         // Draw happy bottom eyelids
+        //         if (happy) {
+        //             _sprite->fillRoundRect(eyeLx-1, (eyeLy+eyeLheightCurrent)-eyelidsHappyBottomOffset+1, 
+        //                                 eyeLwidthCurrent+2, eyeLheightDefault, 
+        //                                 eyeLborderRadiusCurrent+13, _bgColor); // left eye
+                                        
+        //             if (!cyclops) { 
+        //                 _sprite->fillRoundRect(eyeRx-1, (eyeRy+eyeRheightCurrent)-eyelidsHappyBottomOffset+1, 
+        //                                     eyeRwidthCurrent+2, eyeRheightDefault, 
+        //                                     eyeRborderRadiusCurrent+13, _bgColor); // right eye
+        //             }
+        //         //Serial.println("drew happy eye");
+        //         }
+        //     } catch (...) {
+        //     Serial.println("ERROR: Exception caught during sprite rendering");
+        //     // Draw an error indicator
+        //     //_tft->fillTriangle(10, 10, 30, 10, 20, 30, TFT_RED);
+        //     }
+        // }
+        TFT_eSprite* targetSprite = background ? _bgSprite : _sprite;
+    
+        if (!background) {
+            targetSprite->fillSprite(_bgColor);
         }
-        else{
-            try {
-                //// ACTUAL DRAWINGS WITH SPRITE ////
-                
-                // Clear sprite for next frame
-                _sprite->fillSprite(_bgColor);
-                
-                // Draw basic eye rectangles
-                _sprite->fillRoundRect(eyeLx, eyeLy, eyeLwidthCurrent, eyeLheightCurrent, 
-                                    eyeLborderRadiusCurrent, _mainColor); // left eye
-                
-                if (!cyclops) {
-                    _sprite->fillRoundRect(eyeRx, eyeRy, eyeRwidthCurrent, eyeRheightCurrent, 
-                                        eyeRborderRadiusCurrent, _mainColor); // right eye
-                }
-                //Serial.println("drew basic eye");
-                // Draw tired top eyelids
-                if (tired) {
-                    if (!cyclops) {
-                        _sprite->fillTriangle(eyeLx, eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
-                                            eyeLx, eyeLy+eyelidsTiredHeight-1, _bgColor); // left eye 
-                        _sprite->fillTriangle(eyeRx, eyeRy-1, eyeRx+eyeRwidthCurrent, eyeRy-1, 
-                                            eyeRx+eyeRwidthCurrent, eyeRy+eyelidsTiredHeight-1, _bgColor); // right eye
-                    } else {
-                        // Cyclops tired eyelids
-                        _sprite->fillTriangle(eyeLx, eyeLy-1, eyeLx+(eyeLwidthCurrent/2), eyeLy-1, 
-                                            eyeLx, eyeLy+eyelidsTiredHeight-1, _bgColor); // left eyelid half
-                        _sprite->fillTriangle(eyeLx+(eyeLwidthCurrent/2), eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
-                                            eyeLx+eyeLwidthCurrent, eyeLy+eyelidsTiredHeight-1, _bgColor); // right eyelid half
-                    }
-                //Serial.println("drew tired eye");
-                }
-                // Draw angry top eyelids
-                if (angry) {
-                    if (!cyclops) { 
-                        _sprite->fillTriangle(eyeLx, eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
-                                            eyeLx+eyeLwidthCurrent, eyeLy+eyelidsAngryHeight-1, _bgColor); // left eye
-                        _sprite->fillTriangle(eyeRx, eyeRy-1, eyeRx+eyeRwidthCurrent, eyeRy-1, 
-                                            eyeRx, eyeRy+eyelidsAngryHeight-1, _bgColor); // right eye
-                    } else {
-                        // Cyclops angry eyelids
-                        _sprite->fillTriangle(eyeLx, eyeLy-1, eyeLx+(eyeLwidthCurrent/2), eyeLy-1, 
-                                            eyeLx+(eyeLwidthCurrent/2), eyeLy+eyelidsAngryHeight-1, _bgColor); // left eyelid half
-                        _sprite->fillTriangle(eyeLx+(eyeLwidthCurrent/2), eyeLy-1, eyeLx+eyeLwidthCurrent, eyeLy-1, 
-                                            eyeLx+(eyeLwidthCurrent/2), eyeLy+eyelidsAngryHeight-1, _bgColor); // right eyelid half
-                    }
-                //Serial.println("drew angry eye");
-                }
-                // Draw happy bottom eyelids
-                if (happy) {
-                    _sprite->fillRoundRect(eyeLx-1, (eyeLy+eyeLheightCurrent)-eyelidsHappyBottomOffset+1, 
-                                        eyeLwidthCurrent+2, eyeLheightDefault, 
-                                        eyeLborderRadiusCurrent+13, _bgColor); // left eye
-                                        
-                    if (!cyclops) { 
-                        _sprite->fillRoundRect(eyeRx-1, (eyeRy+eyeRheightCurrent)-eyelidsHappyBottomOffset+1, 
-                                            eyeRwidthCurrent+2, eyeRheightDefault, 
-                                            eyeRborderRadiusCurrent+13, _bgColor); // right eye
-                    }
-                //Serial.println("drew happy eye");
-                }
-            } catch (...) {
-            Serial.println("ERROR: Exception caught during sprite rendering");
-            // Draw an error indicator
-            //_tft->fillTriangle(10, 10, 30, 10, 20, 30, TFT_RED);
-            }
+        
+        // Determine expression
+        int expression = 0; // normal
+        if (tired) expression = 1;
+        else if (angry) expression = 2;
+        else if (happy) expression = 3;
+        
+        // Draw eyes with boolean operations
+        drawEyeWithExpression(targetSprite, eyeLx, eyeLy, eyeLwidthCurrent, 
+                            eyeLheightCurrent, eyeLborderRadiusCurrent, _mainColor, expression, true);
+        
+        if (!cyclops) {
+            drawEyeWithExpression(targetSprite, eyeRx, eyeRy, eyeRwidthCurrent, 
+                                eyeRheightCurrent, eyeRborderRadiusCurrent, _mainColor, expression, false);
         }
     } // end of drawEyes method
 
