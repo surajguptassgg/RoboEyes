@@ -889,40 +889,39 @@ public:
                 }
                 break;
                 
-            case 3: // Happy eye - rectangle minus bottom rounded area
-                {
-                    int minX = x - 5;
-                    int maxX = x + width + 5;
-                    int minY = y;
-                    int maxY = y + height + 20;
-                    
-                    for (int py = minY; py <= maxY; py++) {
-                        for (int px = minX; px <= maxX; px++) {
-                            bool inRect = ShapeBoolean::isInRoundedRect(px, py, x, y, width, height, borderRadius);
+            case 3: // Happy eye - recreate original happy eyes with bottom rounded cutout
+            {
+                int minX = x - 5;
+                int maxX = x + width + 5;
+                int minY = y;
+                int maxY = y + height + eyeLheightDefault;
+                
+                for (int py = minY; py <= maxY; py++) {
+                    for (int px = minX; px <= maxX; px++) {
+                        // Check if pixel is in the original rounded rectangle eye
+                        bool inRect = ShapeBoolean::isInRoundedRect(px, py, x, y, width, height, borderRadius);
+                        
+                        if (inRect) {
+                            // Check if pixel is in the bottom "smile cutout" rounded rectangle
+                            // This recreates the original: fillRoundRect(x-1, (y+height)-offset+1, width+2, defaultHeight, radius+13, bgColor)
+                            int cutoutX = x - 1;
+                            int cutoutY = (y + height) - eyelidsHappyBottomOffset + 1;
+                            int cutoutWidth = width + 2;
+                            int cutoutHeight = eyeLheightDefault; // Use the default eye height from your class
+                            int cutoutRadius = borderRadius + 13;
                             
-                            if (inRect) {
-                                // Check if pixel is in the bottom "smile" area to subtract
-                                int centerX = x + width/2;
-                                int centerY = y + height - eyelidsHappyBottomOffset;
-                                int dx = px - centerX;
-                                int dy = py - centerY;
-                                
-                                // Elliptical cutout for smile - only cut out if in bottom area
-                                bool inSmileCutout = false;
-                                if (py >= centerY) {
-                                    float ellipseTest = (dx*dx)/(float)((width/2 + 5)*(width/2 + 5)) + 
-                                                    (dy*dy)/(float)(20*20);
-                                    inSmileCutout = (ellipseTest <= 1.0);
-                                }
-                                
-                                if (!inSmileCutout) {
-                                    sprite->drawPixel(px, py, color);
-                                }
+                            bool inCutout = ShapeBoolean::isInRoundedRect(px, py, cutoutX, cutoutY, 
+                                                                         cutoutWidth, cutoutHeight, cutoutRadius);
+                            
+                            // Draw pixel only if it's in the eye but NOT in the cutout
+                            if (!inCutout) {
+                                sprite->drawPixel(px, py, color);
                             }
                         }
                     }
                 }
-                break;
+            }
+            break;
         }
     }
 

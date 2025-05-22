@@ -157,11 +157,11 @@ void checkBattery() {
         break;
         
       case 3:  // Excellent (95%+)
-        eyes.setMood(HAPPY);
-        eyes.setIdleMode(true);
+        eyes.setMood(ANGRY);
+        eyes.setIdleMode(false);
         eyes.setVFlicker(false);
-        //eyes.setPosition(9);
-        //switchAnimation("/sd_card/sd_card/animations/maze", 0, 0, 30);
+        eyes.setPosition(9);
+        switchAnimation("/sd_card/sd_card/animations/maze", 0, 0, 30);
         //if (!eyes.getGifStatus()) {
         //  switchAnimation("/sd_card/sd_card/animations/fire", 0, 150, 20);
         //}
