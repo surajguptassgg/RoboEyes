@@ -112,15 +112,15 @@ void checkBattery() {
   
   // Convert to percentage (for standard 3.7V LiPo)
   batteryPercentage = map(constrain(batteryVoltage * 100, 300, 420), 300, 420, 0, 100);
-  //batteryPercentage = 75;
+  //batteryPercentage = 45;
   //Serial.print(batteryPercentage);
 
   int currentBatteryZone;
-  if (batteryPercentage < 10) {
+  if (batteryPercentage < 15) {
     currentBatteryZone = 0;  // Critical
-  } else if (batteryPercentage < 65) {
+  } else if (batteryPercentage < 55) {
     currentBatteryZone = 1;  // Normal
-  } else if (batteryPercentage < 95) {
+  } else if (batteryPercentage < 90) {
     currentBatteryZone = 2;  // Good
   } else {
     currentBatteryZone = 3;  // Excellent
@@ -140,16 +140,17 @@ void checkBattery() {
       case 1:  // Normal (10-64%)
         eyes.setMood(DEFAULT);
         eyes.setIdleMode(true);
-        if (eyes.getGifStatus()) {
-          eyes.setBackground(false);
-        }
-        break;
-        
-      case 2:  // Good (65-94%)
+        switchAnimation("/sd_card/sd_card/animations/maze", 0, 0, 30);
         //if (eyes.getGifStatus()) {
         //  eyes.setBackground(false);
         //}
-        switchAnimation("/sd_card/sd_card/animations/maze", 0, 0, 30);
+        break;
+        
+      case 2:  // Good (65-94%)
+        if (eyes.getGifStatus()) {
+          eyes.setBackground(false);
+        }
+        //switchAnimation("/sd_card/sd_card/animations/circles", 0, 0, 30);
         //switchAnimation("/sd_card/sd_card/animations/battery", 0, 150, 20);
         eyes.setIdleMode(true);
         eyes.setVFlicker(false);

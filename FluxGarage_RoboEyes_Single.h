@@ -917,6 +917,58 @@ public:
                     }
                 }
                 break;
+            
+            case 4: // Spectacles - thin wire frame (fixed size, no blinking)
+            {
+                // Calculate fixed spectacle frame position (based on default eye, not current)
+                int frameX = eyeLxDefault - 5;
+                int frameY = eyeLyDefault - 5;
+                int frameWidth = eyeLwidthDefault + 10;
+                int frameHeight = eyeLheightDefault + 10;
+                int frameRadius = eyeLborderRadiusDefault + 5;
+                
+                int minX = frameX - 2;
+                int maxX = frameX + frameWidth + 2;
+                int minY = frameY - 2;
+                int maxY = frameY + frameHeight + 2;
+                
+                // Also include bridge area for left eye
+                if (isLeftEye) {
+                    maxX += spaceBetweenDefault;
+                }
+                
+                for (int py = minY; py <= maxY; py++) {
+                    for (int px = minX; px <= maxX; px++) {
+                        // Draw the normal eye (this will blink)
+                        bool inRect = ShapeBoolean::isInRoundedRect(px, py, x, y, width, height, borderRadius);
+                        if (inRect) {
+                            sprite->drawPixel(px, py, color);
+                        }
+                        
+                        // Draw spectacle frame at FIXED position (won't blink)
+                        bool onFrameOuter = ShapeBoolean::isInRoundedRect(px, py, frameX - 1, frameY - 1, 
+                                                                        frameWidth + 2, frameHeight + 2, frameRadius);
+                        bool onFrameInner = ShapeBoolean::isInRoundedRect(px, py, frameX + 1, frameY + 1, 
+                                                                        frameWidth - 2, frameHeight - 2, frameRadius);
+                        
+                        if (onFrameOuter && !onFrameInner) {
+                            sprite->drawPixel(px, py, color);
+                        }
+                        
+                        // Draw bridge (only for left eye)
+                        if (isLeftEye) {
+                            int bridgeStartX = frameX + frameWidth;
+                            int bridgeEndX = bridgeStartX + spaceBetweenDefault - 10;
+                            int bridgeY = frameY + frameHeight/2;
+                            
+                            if (py >= bridgeY && py <= bridgeY + 1 && px >= bridgeStartX && px <= bridgeEndX) {
+                                sprite->drawPixel(px, py, color);
+                            }
+                        }
+                    }
+                }
+            }
+            break;
         }
     }
 
