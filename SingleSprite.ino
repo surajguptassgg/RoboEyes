@@ -161,7 +161,7 @@ void checkBattery() {
         eyes.setIdleMode(false);
         eyes.setVFlicker(false);
         eyes.setPosition(9);
-        switchAnimation("/sd_card/sd_card/animations/maze", 0, 0, 30);
+        switchAnimation("/sd_card/sd_card/animations/fire", 0, 150, 30);
         //if (!eyes.getGifStatus()) {
         //  switchAnimation("/sd_card/sd_card/animations/fire", 0, 150, 20);
         //}
@@ -200,20 +200,7 @@ void loop() {
     Serial.println(batteryStatus);
     touchTimeoutTimer = millis();
   }
-  /*
-  static unsigned long lastFrameTime = 0;
-  if (millis() - lastFrameTime > 42) { // 42ms = ~24fps
-    lastFrameTime = millis();
-    
-    // Get next frame
-    uint16_t* nextFrame = fireAnimation.getNextFrame();
-    if (nextFrame) {
-      // Update the current frame pointer in our array
-      int currentFrameIndex = fireAnimation.getCurrentFrameIndex();
-      fireFramePointers[currentFrameIndex] = nextFrame;
-    }
-  }
-  */
+
   eyes.update(); // This will draw and display the eyes
   //eyes.setPosition(5);
   if (millis() - batteryCheckTimer >= batteryCheckInterval) {   
@@ -222,55 +209,7 @@ void loop() {
       eyes.setPosition(9);
     }
   }
-  /*
-  if (millis() > modeChangeTimer + modeChangeDuration) {
-    modeChangeTimer = millis();
-    currentMode = (currentMode + 1) % 4;
-
-    switch(currentMode){
-      case 0:
-        Serial.println("In case fire");
-        //eyes.setBackground(false);
-        switchAnimation("/sd_card/sd_card/animations/fire", 0, 150);
-        break;
-      case 1:
-        //Serial.println("In case trip");
-        eyes.setBackground(false);
-        eyes.setPosition(9);
-        //switchAnimation("/sd_card/sd_card/animations/trip", 0, 0);
-        /*
-        if (fireAnimation.begin("/sd_card/sd_card/animations/trip", 12)) {
-          Serial.println("Successfully loaded fire animation from SD card");
-          
-          // Get frame count from animation
-          int frameCount = fireAnimation.getFrameCount();
-          // Prepare our frame pointer array for eyes.setBackground
-          for (int i = 0; i < frameCount; i++) {
-            fireFramePointers[i] = fireAnimation.getFrame(i);
-          }
-          
-          // Set the animation as background
-          eyes.setBackground(true, fireAnimation.getWidth(), fireAnimation.getHeight(), 0, 150, frameCount, (uint16_t**)fireFramePointers);
-        } else {
-          Serial.println("Failed to load animation from SD card");
-        }
-        
-        break;
-      case 2:
-        eyes.setPosition(7);
-        //eyes.setBackground(false);
-        switchAnimation("/sd_card/sd_card/animations/battery", 320, 20);
-        break;
-      case 3:
-        eyes.setBackground(false);
-        eyes.setPosition(9);
-        break;     
-      case 4:
-        eyes.setPosition(9);
-        break;   
-    }
-  }
-  */
+  
   /*
   if (millis() > modeChangeTimer + modeChangeDuration) {
     modeChangeTimer = millis();
