@@ -112,7 +112,7 @@ void checkBattery() {
   
   // Convert to percentage (for standard 3.7V LiPo)
   batteryPercentage = map(constrain(batteryVoltage * 100, 300, 420), 300, 420, 0, 100);
-  //batteryPercentage = 45;
+  //batteryPercentage = 65;
   //Serial.print(batteryPercentage);
 
   int currentBatteryZone;

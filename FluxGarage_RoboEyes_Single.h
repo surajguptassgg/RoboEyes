@@ -889,31 +889,36 @@ public:
                 
             case 3: // Happy eye - integer-only version
                 {
-                    int minX = x - 5;
-                    int maxX = x + width + 5;
-                    int minY = y;
-                    int maxY = y + height + eyeLheightDefault;
-                    
-                    for (int py = minY; py <= maxY; py++) {
-                        for (int px = minX; px <= maxX; px++) {
-                            bool inRect = ShapeBoolean::isInRoundedRect(px, py, x, y, width, height, borderRadius);
-                            
-                            if (inRect) {
-                                // Integer-only rounded rectangle test for cutout
-                                int cutoutX = x - 1;
-                                int cutoutY = (y + height) - eyelidsHappyBottomOffset + 1;
-                                int cutoutWidth = width + 2;
-                                int cutoutHeight = eyeLheightDefault;
-                                int cutoutRadius = borderRadius + 13;
+                    if(background){
+                        int minX = x - 5;
+                        int maxX = x + width + 5;
+                        int minY = y;
+                        int maxY = y + height + eyeLheightDefault;
+                        
+                        for (int py = minY; py <= maxY; py++) {
+                            for (int px = minX; px <= maxX; px++) {
+                                bool inRect = ShapeBoolean::isInRoundedRect(px, py, x, y, width, height, borderRadius);
                                 
-                                bool inCutout = ShapeBoolean::isInRoundedRect(px, py, cutoutX, cutoutY, 
-                                                                            cutoutWidth, cutoutHeight, cutoutRadius);
-                                
-                                if (!inCutout) {
-                                    sprite->drawPixel(px, py, color);
+                                if (inRect) {
+                                    // Integer-only rounded rectangle test for cutout
+                                    int cutoutX = x - 1;
+                                    int cutoutY = (y + height) - eyelidsHappyBottomOffset + 1;
+                                    int cutoutWidth = width + 2;
+                                    int cutoutHeight = eyeLheightDefault;
+                                    int cutoutRadius = borderRadius + 13;
+                                    
+                                    bool inCutout = ShapeBoolean::isInRoundedRect(px, py, cutoutX, cutoutY, 
+                                                                                cutoutWidth, cutoutHeight, cutoutRadius);
+                                    
+                                    if (!inCutout) {
+                                        sprite->drawPixel(px, py, color);
+                                    }
                                 }
                             }
                         }
+                    }else{
+                        sprite->fillRoundRect(x, y, width, height, borderRadius, color);
+                        sprite->fillRoundRect(x-1, (y+height)-eyelidsHappyBottomOffset+1, width+2, eyeLheightDefault, borderRadius+13, TFT_BLACK);
                     }
                 }
                 break;
